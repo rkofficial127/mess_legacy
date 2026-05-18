@@ -30,11 +30,14 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     email: EmailStr
     full_name: str
-    phone: str | None
+    username: str | None = None
+    phone: str | None = None
+    avatar_url: str | None = None
     role: UserRole
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    has_password: bool = False
 
 
 class SelfProfileUpdate(BaseModel):

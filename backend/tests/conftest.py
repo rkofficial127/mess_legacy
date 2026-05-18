@@ -85,6 +85,21 @@ async def admin_user(db_session) -> User:
     return user
 
 
+@pytest_asyncio.fixture
+async def google_only_user(db_session) -> User:
+    user = User(
+        email="googleuser@example.com",
+        full_name="Google User",
+        google_id="google-sub-12345",
+        role=UserRole.USER,
+        is_active=True,
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
+
 @pytest.fixture
 def auth_headers():
     def _headers(user: User) -> dict[str, str]:

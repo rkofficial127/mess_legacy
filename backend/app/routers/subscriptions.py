@@ -52,6 +52,31 @@ async def get_my_subscription(db: DbSession, current_user: CurrentUser):
     return await _enrich(db, sub)
 
 
+@router.get("/user/{user_id}", response_model=SubscriptionDetailResponse)
+async def get_user_subscription(
+    user_id: uuid.UUID,
+    month: int,
+    year: int,
+    db: DbSession,
+    _: CurrentAdmin,
+):
+    result = await db.execute(
+        select(UserSubscription).where(
+            UserSubscription.user_id == user_id,
+            UserSubscription.month == month,
+            UserSubscription.year == year,
+            UserSubscription.is_active.is_(True),
+        )
+    )
+    sub = result.scalar_one_or_none()
+    if sub is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active subscription for this user/month",
+        )
+    return await _enrich(db, sub)
+
+
 @router.post("", response_model=SubscriptionResponse, status_code=status.HTTP_201_CREATED)
 async def create_subscription(
     payload: SubscriptionCreate, db: DbSession, _: CurrentAdmin
