@@ -1,6 +1,7 @@
 class Bill {
   final String id;
   final String userId;
+  final String? userFullName;
   final int month;
   final int year;
   final String planName;
@@ -15,6 +16,7 @@ class Bill {
   const Bill({
     required this.id,
     required this.userId,
+    this.userFullName,
     required this.month,
     required this.year,
     required this.planName,
@@ -30,6 +32,7 @@ class Bill {
   factory Bill.fromJson(Map<String, dynamic> json) => Bill(
         id: json['id'] as String,
         userId: json['user_id'] as String,
+        userFullName: json['user_full_name'] as String?,
         month: json['month'] as int,
         year: json['year'] as int,
         planName: json['plan_name'] as String,

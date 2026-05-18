@@ -1,16 +1,48 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/meal_skip_provider.dart';
+import '../../core/utils/meal_cutoff.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _fadeController;
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
+    _countdownTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => setState(() {}),
+    );
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -28,29 +60,7 @@ class DashboardScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (sub) {
-          if (sub == null) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.no_meals_outlined,
-                        size: 64, color: cs.onSurfaceVariant.withOpacity(0.5)),
-                    const SizedBox(height: 16),
-                    Text('No Active Plan',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Contact your admin to get a meal plan assigned for this month.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: cs.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
+          if (sub == null) return _NoPlanView(cs: cs);
 
           final mealsPerDay = sub.planMealsPerDay ?? 2;
           List<String> todayMeals;
@@ -82,11 +92,11 @@ class DashboardScreen extends ConsumerWidget {
                   .toList();
               final isFullDayOff =
                   todayMessOff.any((m) => m.mealType == 'ALL');
-
               final totalSkips = skips.length;
               final totalMessOff = messOffs.length;
 
               return RefreshIndicator(
+                color: cs.primary,
                 onRefresh: () async {
                   ref.invalidate(subscriptionProvider);
                   ref.invalidate(
@@ -94,229 +104,130 @@ class DashboardScreen extends ConsumerWidget {
                   ref.invalidate(
                       messOffProvider((month: now.month, year: now.year)));
                 },
-                child: CustomScrollView(
-                  slivers: [
-                    // Greeting header
-                    SliverToBoxAdapter(
-                      child: Container(
-                        padding: EdgeInsets.only(
-                          top: MediaQuery.of(context).padding.top + 16,
-                          left: 20,
-                          right: 20,
-                          bottom: 20,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              cs.primary,
-                              cs.primary.withOpacity(0.85),
-                            ],
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _greeting(),
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        auth.user?.fullName ?? 'User',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    DateFormat('d MMM').format(now),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            // Quick stats row
-                            Row(
-                              children: [
-                                _QuickStat(
-                                  label: 'Plan',
-                                  value: sub.planName ?? '-',
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: 32,
-                                  color: Colors.white.withOpacity(0.3),
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                ),
-                                _QuickStat(
-                                  label: 'Rate',
-                                  value:
-                                      '₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}',
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: 32,
-                                  color: Colors.white.withOpacity(0.3),
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                ),
-                                _QuickStat(
-                                  label: 'Skipped',
-                                  value: '$totalSkips',
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: 32,
-                                  color: Colors.white.withOpacity(0.3),
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 16),
-                                ),
-                                _QuickStat(
-                                  label: 'Mess Off',
-                                  value: '$totalMessOff',
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                child: FadeTransition(
+                  opacity: CurvedAnimation(
+                      parent: _fadeController, curve: Curves.easeOut),
+                  child: ListView(
+                    padding: EdgeInsets.only(
+                      top: MediaQuery.of(context).padding.top + 20,
+                      left: 20,
+                      right: 20,
+                      bottom: 20,
                     ),
+                    children: [
+                      // Greeting
+                      Text(_greeting(),
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 13)),
+                      const SizedBox(height: 2),
+                      Text(
+                        auth.user?.fullName ?? 'User',
+                        style: GoogleFonts.inter(
+                            fontSize: 24, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 20),
 
-                    SliverPadding(
-                      padding: const EdgeInsets.all(20),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate([
-                          // Mess-off banner
-                          if (isFullDayOff) ...[
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: cs.errorContainer,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(children: [
-                                Icon(Icons.event_busy,
-                                    color: cs.onErrorContainer),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Mess is off today',
-                                          style: TextStyle(
-                                            color: cs.onErrorContainer,
-                                            fontWeight: FontWeight.w600,
-                                          )),
-                                      if (todayMessOff.first.reason != null)
-                                        Text(todayMessOff.first.reason!,
-                                            style: TextStyle(
-                                                color: cs.onErrorContainer
-                                                    .withOpacity(0.8),
-                                                fontSize: 13)),
-                                    ],
-                                  ),
-                                ),
-                              ]),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
+                      // Stats row
+                      Row(
+                        children: [
+                          _StatChip(sub.planName ?? '-', 'Plan'),
+                          const SizedBox(width: 8),
+                          _StatChip(
+                              '₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}',
+                              'Rate'),
+                          const SizedBox(width: 8),
+                          _StatChip('$totalSkips', 'Skipped'),
+                          const SizedBox(width: 8),
+                          _StatChip('$totalMessOff', 'Off'),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
 
-                          if (!isFullDayOff) ...[
-                            Row(
-                              children: [
-                                Text("Today's Meals",
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                const Spacer(),
-                                Text(
-                                  DateFormat('EEEE').format(now),
-                                  style: TextStyle(
-                                    color: cs.onSurfaceVariant,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            ...todayMeals.map((meal) {
-                              final isMessOff = todayMessOff.any(
-                                  (m) => m.mealType == meal || m.mealType == 'ALL');
-                              final skip = todaySkips
-                                  .where((s) => s.mealType == meal)
-                                  .firstOrNull;
-                              final isSkipped = skip != null;
-
-                              return _MealCard(
-                                mealType: meal,
-                                isSkipped: isSkipped,
-                                isMessOff: isMessOff,
-                                skipId: skip?.id,
-                                date: today,
-                                onChanged: () {
-                                  ref.invalidate(monthSkipsProvider(
-                                      (month: now.month, year: now.year)));
-                                },
-                              );
-                            }),
-                            const SizedBox(height: 8),
-                          ],
-
-                          if (isSunday)
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color:
-                                    cs.tertiaryContainer.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
+                      // Mess-off banner
+                      if (isFullDayOff) ...[
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: cs.errorContainer,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(children: [
+                            Icon(Icons.event_busy,
+                                size: 20, color: cs.onErrorContainer),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.info_outline,
-                                      size: 20,
-                                      color: cs.onTertiaryContainer),
-                                  const SizedBox(width: 10),
-                                  Text('Only lunch is served on Sundays',
+                                  Text('Mess is off today',
                                       style: TextStyle(
-                                          color: cs.onTertiaryContainer,
-                                          fontSize: 13)),
+                                          color: cs.onErrorContainer,
+                                          fontWeight: FontWeight.w600)),
+                                  if (todayMessOff.first.reason != null)
+                                    Text(todayMessOff.first.reason!,
+                                        style: TextStyle(
+                                            color: cs.onErrorContainer
+                                                .withOpacity(0.7),
+                                            fontSize: 13)),
                                 ],
                               ),
                             ),
-                        ]),
-                      ),
-                    ),
-                  ],
+                          ]),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
+                      if (!isFullDayOff) ...[
+                        // Section label
+                        Row(
+                          children: [
+                            Text("Today's Meals",
+                                style: GoogleFonts.inter(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            Text(DateFormat('EEEE').format(now),
+                                style: TextStyle(
+                                    color: cs.onSurfaceVariant,
+                                    fontSize: 12)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Meal cards
+                        ...todayMeals.map((meal) {
+                          final isMessOff = todayMessOff.any((m) =>
+                              m.mealType == meal || m.mealType == 'ALL');
+                          final skip = todaySkips
+                              .where((s) => s.mealType == meal)
+                              .firstOrNull;
+                          final isSkipped = skip != null;
+                          final frozen = isMealCutoffPassed(meal, today);
+
+                          return _MealCard(
+                            mealType: meal,
+                            isSkipped: isSkipped,
+                            isMessOff: isMessOff,
+                            isFrozen: frozen,
+                            skipId: skip?.id,
+                            date: today,
+                            onChanged: () {
+                              ref.invalidate(monthSkipsProvider(
+                                  (month: now.month, year: now.year)));
+                            },
+                          );
+                        }),
+                      ],
+
+                      if (isSunday)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text('Only lunch is served on Sundays',
+                              style: TextStyle(
+                                  color: cs.onSurfaceVariant, fontSize: 13)),
+                        ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -334,38 +245,77 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _QuickStat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _QuickStat({required this.label, required this.value});
+class _NoPlanView extends StatelessWidget {
+  final ColorScheme cs;
+  const _NoPlanView({required this.cs});
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 16,
-              )),
-          const SizedBox(height: 2),
-          Text(label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.7),
-                fontSize: 11,
-              )),
-        ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.no_meals_outlined,
+                size: 48, color: cs.onSurfaceVariant.withOpacity(0.4)),
+            const SizedBox(height: 16),
+            Text('No Active Plan',
+                style: GoogleFonts.inter(
+                    fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text(
+              'Contact your admin to get a meal plan assigned.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _MealCard extends StatelessWidget {
+class _StatChip extends StatelessWidget {
+  final String value;
+  final String label;
+  const _StatChip(this.value, this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outline),
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 2),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10, color: cs.onSurfaceVariant)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MealCard extends StatefulWidget {
   final String mealType;
   final bool isSkipped;
   final bool isMessOff;
+  final bool isFrozen;
   final String? skipId;
   final DateTime date;
   final VoidCallback onChanged;
@@ -374,103 +324,182 @@ class _MealCard extends StatelessWidget {
     required this.mealType,
     required this.isSkipped,
     required this.isMessOff,
+    required this.isFrozen,
     this.skipId,
     required this.date,
     required this.onChanged,
   });
 
   @override
+  State<_MealCard> createState() => _MealCardState();
+}
+
+class _MealCardState extends State<_MealCard> {
+  bool _loading = false;
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final emoji = mealEmoji[mealType] ?? '';
-    final label = mealLabel[mealType] ?? mealType;
+    final label = mealLabel[widget.mealType] ?? widget.mealType;
+    final canAct = !widget.isMessOff && !widget.isFrozen;
+    final isLocked = widget.isFrozen && !widget.isMessOff;
 
-    Color cardColor;
     Color accentColor;
     String statusText;
-    IconData statusIcon;
 
-    if (isMessOff) {
-      cardColor = cs.surfaceContainerHighest;
+    if (widget.isMessOff) {
       accentColor = cs.onSurfaceVariant;
       statusText = 'Mess Off';
-      statusIcon = Icons.event_busy_outlined;
-    } else if (isSkipped) {
-      cardColor = cs.errorContainer.withOpacity(0.5);
+    } else if (widget.isSkipped) {
       accentColor = cs.error;
       statusText = 'Skipped';
-      statusIcon = Icons.close_rounded;
+    } else if (widget.isFrozen) {
+      accentColor = cs.onSurfaceVariant;
+      statusText = 'Locked';
     } else {
-      cardColor = cs.primaryContainer.withOpacity(0.4);
       accentColor = cs.primary;
       statusText = 'Taking';
-      statusIcon = Icons.check_circle_outline;
     }
 
+    final mealIcons = {
+      'BREAKFAST': Icons.wb_twilight_rounded,
+      'LUNCH': Icons.wb_sunny_rounded,
+      'DINNER': Icons.nightlight_round,
+    };
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: accentColor.withOpacity(0.2),
-          width: 1,
-        ),
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: cs.outline),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 32)),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 16)),
-                const SizedBox(height: 2),
-                Row(
+          Row(
+            children: [
+              Icon(mealIcons[widget.mealType] ?? Icons.restaurant,
+                  size: 20, color: accentColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(statusIcon, size: 14, color: accentColor),
-                    const SizedBox(width: 4),
+                    Text(label,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
                     Text(statusText,
                         style: TextStyle(
                             color: accentColor,
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500)),
                   ],
                 ),
-              ],
+              ),
+              if (isLocked)
+                Icon(Icons.lock_outline,
+                    size: 16, color: cs.onSurfaceVariant),
+              if (canAct)
+                _loading
+                    ? const SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: Padding(
+                          padding: EdgeInsets.all(6),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ))
+                    : TextButton(
+                        onPressed: _handleAction,
+                        style: TextButton.styleFrom(
+                          foregroundColor:
+                              widget.isSkipped ? cs.primary : cs.error,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          minimumSize: const Size(0, 36),
+                        ),
+                        child: Text(widget.isSkipped ? 'Undo' : 'Skip',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+            ],
+          ),
+          // Countdown
+          if (!widget.isMessOff && !widget.isSkipped && !widget.isFrozen)
+            _CountdownBar(mealType: widget.mealType, date: widget.date),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleAction() async {
+    setState(() => _loading = true);
+    try {
+      if (widget.isSkipped && widget.skipId != null) {
+        await cancelSkip(widget.skipId!);
+      } else {
+        await createSkip(widget.date, widget.mealType);
+      }
+      widget.onChanged();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+}
+
+class _CountdownBar extends StatelessWidget {
+  final String mealType;
+  final DateTime date;
+  const _CountdownBar({required this.mealType, required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final now = DateTime.now();
+    DateTime cutoff;
+    if (mealType == 'BREAKFAST') {
+      cutoff = DateTime(date.year, date.month, date.day - 1, 20, 0);
+    } else if (mealType == 'LUNCH') {
+      cutoff = DateTime(date.year, date.month, date.day, 8, 0);
+    } else {
+      cutoff = DateTime(date.year, date.month, date.day, 16, 0);
+    }
+
+    final diff = cutoff.difference(now);
+    if (diff.isNegative) return const SizedBox.shrink();
+
+    final totalMinutes = diff.inMinutes;
+    final hours = diff.inHours;
+    final minutes = totalMinutes % 60;
+    final maxMinutes = 480.0;
+    final progress = (totalMinutes / maxMinutes).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 3,
+                backgroundColor: cs.outline,
+                color: cs.primary.withOpacity(0.6),
+              ),
             ),
           ),
-          if (!isMessOff)
-            FilledButton.tonal(
-              onPressed: () async {
-                try {
-                  if (isSkipped && skipId != null) {
-                    await cancelSkip(skipId!);
-                  } else {
-                    await createSkip(date, mealType);
-                  }
-                  onChanged();
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString())),
-                    );
-                  }
-                }
-              },
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(0, 40),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(isSkipped ? 'Undo' : 'Skip',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-            ),
+          const SizedBox(width: 8),
+          Text('${hours}h ${minutes}m left',
+              style: TextStyle(
+                  fontSize: 10,
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w500)),
         ],
       ),
     );

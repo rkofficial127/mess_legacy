@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1400, initial-scale=1.0">
+<title>Mess 101 — Design Alternatives</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #080808;
+    color: #F0F4F8;
+    font-family: 'Inter', sans-serif;
+    padding: 40px 20px;
+  }
+  h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 6px;
+    color: #fff;
+  }
+  .subtitle { text-align: center; color: #6B7B8D; margin-bottom: 16px; font-size: 14px; }
+  .concept-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 800;
+    margin: 48px 0 6px;
+    letter-spacing: -0.5px;
+  }
+  .concept-desc {
+    text-align: center;
+    color: #6B7B8D;
+    font-size: 13px;
+    margin-bottom: 28px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .screens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+  .screen-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .screen-label {
+    font-weight: 700;
+    font-size: 12px;
+    color: #6B7B8D;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .phone {
+    width: 375px;
+    height: 812px;
+    border-radius: 40px;
+    border: 3px solid #222;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .phone-inner {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .phone-inner::-webkit-scrollbar { display: none; }
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 76px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px 10px;
+    z-index: 20;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .nav-icon { font-size: 20px; padding: 4px 14px; border-radius: 14px; }
+  hr.sep {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #222, transparent);
+    margin: 48px auto;
+    max-width: 600px;
+  }
+
+  /* ============================================================
+     CONCEPT A: AURORA — Flowing gradients, morphing blobs, particles
+     ============================================================ */
+  .a-bg { background: #050A12; }
+  .a-accent { color: #00D9FF; }
+  .a-header {
+    position: relative;
+    padding: 50px 22px 24px;
+    overflow: hidden;
+    min-height: 220px;
+  }
+  .a-aurora {
+    position: absolute;
+    top: -60px;
+    left: -40px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,217,255,0.2), rgba(139,92,246,0.15), transparent);
+    filter: blur(50px);
+    animation: auroraMove 8s ease-in-out infinite alternate;
+  }
+  .a-aurora2 {
+    position: absolute;
+    top: 20px;
+    right: -60px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(244,63,94,0.15), rgba(139,92,246,0.1), transparent);
+    filter: blur(40px);
+    animation: auroraMove2 6s ease-in-out infinite alternate;
+  }
+  @keyframes auroraMove {
+    0% { transform: translate(0,0) scale(1); opacity: 0.8; }
+    50% { transform: translate(30px,20px) scale(1.2); opacity: 1; }
+    100% { transform: translate(-10px,40px) scale(0.9); opacity: 0.7; }
+  }
+  @keyframes auroraMove2 {
+    0% { transform: translate(0,0) scale(1); }
+    100% { transform: translate(-30px,30px) scale(1.3); }
+  }
+  .a-greeting { color: rgba(255,255,255,0.4); font-size: 13px; position: relative; z-index: 1; }
+  .a-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+    margin-top: 2px;
+  }
+  .a-date {
+    position: relative;
+    z-index: 1;
+    background: rgba(0,217,255,0.1);
+    border: 1px solid rgba(0,217,255,0.2);
+    border-radius: 12px;
+    padding: 6px 12px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #00D9FF;
+  }
+  .a-stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+    position: relative;
+    z-index: 1;
+  }
+  .a-stat {
+    flex: 1;
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 12px 6px;
+    text-align: center;
+  }
+  .a-stat .val { font-weight: 800; font-size: 14px; color: #fff; }
+  .a-stat .lbl { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  .a-card {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .a-card:hover { transform: translateX(4px); border-color: rgba(0,217,255,0.2); }
+  .a-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 2px 2px 0;
+  }
+  .a-card.taking::before { background: linear-gradient(180deg, #00D9FF, #8B5CF6); }
+  .a-card.locked::before { background: #2A3444; }
+  .a-card.skipped::before { background: #F43F5E; }
+  .a-icon-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .a-icon-box.cyan { background: rgba(0,217,255,0.1); }
+  .a-icon-box.muted { background: rgba(255,255,255,0.04); }
+  .a-icon-box.pink { background: rgba(244,63,94,0.1); }
+  .a-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .a-btn.skip { background: linear-gradient(135deg, #F43F5E, #E11D48); color: #fff; }
+  .a-btn.undo { background: linear-gradient(135deg, #00D9FF, #8B5CF6); color: #fff; }
+  .a-progress {
+    height: 3px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .a-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #00D9FF, #8B5CF6, #F43F5E);
+    background-size: 200% 100%;
+    animation: gradientShift 3s ease infinite;
+  }
+  @keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  .a-nav { background: rgba(5,10,18,0.9); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.04); }
+  .a-nav .nav-item { color: rgba(255,255,255,0.3); }
+  .a-nav .nav-item.active { color: #00D9FF; }
+  .a-nav .nav-item.active .nav-icon { background: rgba(0,217,255,0.1); }
+
+  /* Floating particles */
+  .particles {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .particle {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: rgba(0,217,255,0.4);
+    border-radius: 50%;
+    animation: particleFloat linear infinite;
+  }
+  @keyframes particleFloat {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-300px) translateX(20px); opacity: 0; }
+  }
+
+  /* Animated border glow */
+  .glow-border {
+    position: relative;
+  }
+  .glow-border::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    background: conic-gradient(from var(--angle, 0deg), transparent, #00D9FF, transparent, #8B5CF6, transparent);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: xor;
+    -webkit-mask-composite: xor;
+    padding: 1px;
+    animation: rotateBorder 4s linear infinite;
+    opacity: 0.5;
+  }
+  @keyframes rotateBorder {
+    to { --angle: 360deg; }
+  }
+  @property --angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+  }
+
+  /* Pulse ring animation */
+  .pulse-ring {
+    position: relative;
+  }
+  .pulse-ring::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,217,255,0.3);
+    animation: pulseRing 2s ease-out infinite;
+  }
+  @keyframes pulseRing {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  /* ============================================================
+     CONCEPT B: NEON BRUTALIST — Hard lines, glitch, neon borders
+     ============================================================ */
+  .b-bg { background: #0C0C0C; }
+  .b-header {
+    padding: 50px 22px 22px;
+    border-bottom: 2px solid #1A1A1A;
+    position: relative;
+  }
+  .b-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 22px;
+    width: 80px;
+    height: 2px;
+    background: #39FF14;
+    animation: scanLine 3s ease-in-out infinite;
+  }
+  @keyframes scanLine {
+    0%,100% { left: 22px; width: 80px; }
+    50% { left: calc(100% - 102px); width: 80px; }
+  }
+  .b-greeting { color: #39FF14; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; }
+  .b-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 2px;
+    letter-spacing: -1px;
+  }
+  .b-date {
+    font-family: 'Space Grotesk', monospace;
+    color: #39FF14;
+    font-weight: 700;
+    font-size: 14px;
+    border: 1px solid #39FF14;
+    padding: 6px 10px;
+    border-radius: 4px;
+  }
+  .b-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 16px 22px;
+  }
+  .b-stat {
+    background: #111;
+    border: 1px solid #1A1A1A;
+    border-radius: 4px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .b-stat::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, #39FF14, transparent);
+  }
+  .b-stat .val {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .b-stat .lbl { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .b-card {
+    background: #111;
+    border: 1px solid #1A1A1A;
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .b-card:hover { border-color: #39FF14; }
+  .b-card.taking { border-left: 3px solid #39FF14; }
+  .b-card.locked { border-left: 3px solid #333; opacity: 0.5; }
+  .b-card.skipped { border-left: 3px solid #FF3366; }
+  .b-icon {
+    width: 44px;
+    height: 44px;
+    border: 1px solid #222;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+  .b-btn {
+    padding: 8px 16px;
+    border: 1px solid;
+    border-radius: 2px;
+    font-weight: 700;
+    font-size: 11px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+  }
+  .b-btn.skip { border-color: #FF3366; color: #FF3366; }
+  .b-btn.skip:hover { background: #FF3366; color: #000; }
+  .b-btn.undo { border-color: #39FF14; color: #39FF14; }
+  .b-progress {
+    height: 2px;
+    background: #1A1A1A;
+    margin-top: 8px;
+    position: relative;
+  }
+  .b-progress-fill {
+    height: 100%;
+    background: #39FF14;
+    box-shadow: 0 0 8px rgba(57,255,20,0.5);
+  }
+  .b-progress-text {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 10px;
+    color: #39FF14;
+    margin-top: 4px;
+    text-align: right;
+  }
+  .b-nav { background: #0C0C0C; border-top: 1px solid #1A1A1A; }
+  .b-nav .nav-item { color: #444; font-family: 'Space Grotesk', sans-serif; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+  .b-nav .nav-item.active { color: #39FF14; }
+  .b-nav .nav-icon { font-size: 18px; }
+
+  /* Glitch text effect */
+  .glitch {
+    position: relative;
+    animation: glitch 5s infinite;
+  }
+  @keyframes glitch {
+    0%,92%,100% { text-shadow: none; }
+    93% { text-shadow: 2px 0 #FF3366, -2px 0 #00FFFF; }
+    94% { text-shadow: -2px 0 #FF3366, 2px 0 #00FFFF; }
+    95% { text-shadow: none; }
+    96% { text-shadow: 1px 0 #39FF14; }
+    97% { text-shadow: none; }
+  }
+
+  /* Terminal cursor blink */
+  .cursor-blink::after {
+    content: '_';
+    animation: blink 1s step-end infinite;
+    color: #39FF14;
+  }
+  @keyframes blink {
+    0%,50% { opacity: 1; }
+    51%,100% { opacity: 0; }
+  }
+
+  /* ============================================================
+     CONCEPT C: SOFT PREMIUM — Warm dark, gold accents, smooth
+     ============================================================ */
+  .c-bg { background: #0F0F12; }
+  .c-header {
+    padding: 50px 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .c-mesh {
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(250,189,0,0.08), rgba(250,100,0,0.05), transparent);
+    filter: blur(40px);
+    animation: meshFloat 10s ease-in-out infinite;
+  }
+  @keyframes meshFloat {
+    0%,100% { transform: translate(0,0); }
+    33% { transform: translate(-20px,30px); }
+    66% { transform: translate(20px,-10px); }
+  }
+  .c-mesh2 {
+    position: absolute;
+    bottom: -40px;
+    left: -40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(139,92,246,0.08), transparent);
+    filter: blur(30px);
+    animation: meshFloat 8s ease-in-out infinite reverse;
+  }
+  .c-greeting { color: rgba(255,255,255,0.35); font-size: 13px; position: relative; z-index: 1; }
+  .c-name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+    margin-top: 2px;
+  }
+  .c-date {
+    position: relative;
+    z-index: 1;
+    background: rgba(250,189,0,0.08);
+    border: 1px solid rgba(250,189,0,0.15);
+    border-radius: 14px;
+    padding: 8px 14px;
+    text-align: center;
+    line-height: 1;
+  }
+  .c-date .day { font-size: 20px; font-weight: 800; color: #FABD00; }
+  .c-date .month { font-size: 10px; color: rgba(250,189,0,0.6); font-weight: 600; margin-top: 2px; }
+  .c-stats {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .c-stat {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+    padding: 14px 6px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .c-stat:hover { background: rgba(255,255,255,0.06); transform: translateY(-2px); }
+  .c-stat .icon { font-size: 18px; }
+  .c-stat .val { font-weight: 800; font-size: 14px; color: #fff; margin-top: 4px; }
+  .c-stat .lbl { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+  .c-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  .c-card:hover { background: rgba(255,255,255,0.04); transform: scale(1.01); }
+  .c-card.taking { box-shadow: inset 0 0 0 1px rgba(250,189,0,0.15); }
+  .c-card.locked { opacity: 0.45; }
+  .c-card.skipped { box-shadow: inset 0 0 0 1px rgba(244,63,94,0.15); }
+  .c-icon-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .c-icon-box.gold { background: rgba(250,189,0,0.08); }
+  .c-icon-box.muted { background: rgba(255,255,255,0.03); }
+  .c-icon-box.rose { background: rgba(244,63,94,0.08); }
+  .c-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .c-btn:hover { transform: scale(1.05); }
+  .c-btn.skip { background: linear-gradient(135deg, #F43F5E, #E11D48); color: #fff; box-shadow: 0 4px 15px rgba(244,63,94,0.25); }
+  .c-btn.undo { background: linear-gradient(135deg, #FABD00, #F59E0B); color: #0F0F12; box-shadow: 0 4px 15px rgba(250,189,0,0.25); }
+  .c-progress {
+    height: 4px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .c-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #FABD00, #F59E0B);
+    position: relative;
+  }
+  .c-progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #FABD00;
+    box-shadow: 0 0 10px rgba(250,189,0,0.6);
+    animation: progressPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes progressPulse {
+    0%,100% { box-shadow: 0 0 6px rgba(250,189,0,0.4); }
+    50% { box-shadow: 0 0 14px rgba(250,189,0,0.8); }
+  }
+  .c-nav { background: rgba(15,15,18,0.92); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.04); }
+  .c-nav .nav-item { color: rgba(255,255,255,0.25); }
+  .c-nav .nav-item.active { color: #FABD00; }
+  .c-nav .nav-item.active .nav-icon { background: rgba(250,189,0,0.1); }
+
+  /* Stagger animation helper */
+  .stagger > * {
+    animation: staggerIn 0.6s ease-out backwards;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.1s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.2s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.3s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.4s; }
+  @keyframes staggerIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+    animation: shimmerMove 2s infinite;
+  }
+  @keyframes shimmerMove {
+    to { left: 100%; }
+  }
+
+  /* Comparison tags */
+  .tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    margin: 2px;
+  }
+  .tag-cyan { background: rgba(0,217,255,0.15); color: #00D9FF; }
+  .tag-green { background: rgba(57,255,20,0.15); color: #39FF14; }
+  .tag-gold { background: rgba(250,189,0,0.15); color: #FABD00; }
+</style>
+</head>
+<body>
+
+<h1>Design Alternatives — Dashboard Screen</h1>
+<p class="subtitle">3 distinct directions. Each phone has live CSS animations. Scroll within frames.</p>
+
+<!-- ===== CONCEPT A ===== -->
+<div class="concept-title" style="color:#00D9FF">Concept A: Aurora</div>
+<p class="concept-desc">
+  Flowing gradient blobs, particle effects, animated rainbow progress bars, frosted glass cards.
+  <br><span class="tag tag-cyan">Dreamy</span> <span class="tag tag-cyan">Animated Gradients</span> <span class="tag tag-cyan">Particles</span> <span class="tag tag-cyan">Glassmorphism</span>
+</p>
+
+<div class="screens">
+  <div class="screen-wrap">
+    <div class="screen-label" style="color:#00D9FF">Dashboard</div>
+    <div class="phone" style="border-color:#1A2A3A">
+      <div class="phone-inner a-bg">
+        <div class="a-header">
+          <div class="a-aurora"></div>
+          <div class="a-aurora2"></div>
+          <div class="particles">
+            <div class="particle" style="left:20%;bottom:0;animation-duration:4s;animation-delay:0s"></div>
+            <div class="particle" style="left:50%;bottom:0;animation-duration:5s;animation-delay:1s"></div>
+            <div class="particle" style="left:75%;bottom:0;animation-duration:3.5s;animation-delay:0.5s"></div>
+            <div class="particle" style="left:35%;bottom:0;animation-duration:6s;animation-delay:2s"></div>
+            <div class="particle" style="left:85%;bottom:0;animation-duration:4.5s;animation-delay:1.5s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1">
+            <div>
+              <div class="a-greeting">Good evening</div>
+              <div class="a-name">Rohit Kumar</div>
+            </div>
+            <div class="a-date">18 May</div>
+          </div>
+          <div class="a-stats">
+            <div class="a-stat"><div class="val">NV 3x</div><div class="lbl">Plan</div></div>
+            <div class="a-stat"><div class="val">&#8377;3k</div><div class="lbl">Rate</div></div>
+            <div class="a-stat"><div class="val">2</div><div class="lbl">Skips</div></div>
+            <div class="a-stat"><div class="val">0</div><div class="lbl">Off</div></div>
+          </div>
+        </div>
+
+        <div style="padding:20px 18px 100px" class="stagger">
+          <div style="font-weight:700;font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+            <span style="width:3px;height:16px;background:linear-gradient(180deg,#00D9FF,#8B5CF6);border-radius:2px;display:inline-block"></span>
+            Today's Meals
+            <span style="margin-left:auto;font-size:11px;color:#00D9FF;opacity:0.7">Monday</span>
+          </div>
+
+          <div class="a-card locked">
+            <div class="a-icon-box muted">&#9788;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">Breakfast</div>
+              <div style="font-size:12px;color:#3A4555;display:flex;align-items:center;gap:4px">&#128274; Locked</div>
+            </div>
+          </div>
+
+          <div class="a-card locked">
+            <div class="a-icon-box muted">&#9728;&#65039;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">Lunch</div>
+              <div style="font-size:12px;color:#3A4555;display:flex;align-items:center;gap:4px">&#128274; Locked</div>
+            </div>
+          </div>
+
+          <div class="a-card taking shimmer">
+            <div class="a-icon-box cyan">&#127769;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">Dinner</div>
+              <div style="font-size:12px;color:#00D9FF;display:flex;align-items:center;gap:4px">&#10003; Taking</div>
+              <div class="a-progress">
+                <div class="a-progress-fill" style="width:35%"></div>
+              </div>
+              <div style="font-size:10px;color:rgba(0,217,255,0.5);margin-top:4px;text-align:right">2h 14m left</div>
+            </div>
+            <button class="a-btn skip">Skip</button>
+          </div>
+
+          <div class="a-card skipped">
+            <div class="a-icon-box pink">&#127769;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">Dinner</div>
+              <div style="font-size:12px;color:#F43F5E;display:flex;align-items:center;gap:4px">&#10007; Skipped</div>
+            </div>
+            <button class="a-btn undo">Undo</button>
+          </div>
+          <div style="text-align:center;font-size:10px;color:#333;margin:-4px 0 8px">&#8593; taking &nbsp;|&nbsp; skipped &#8593;</div>
+
+          <div style="padding:12px;border:1px dashed rgba(0,217,255,0.15);border-radius:14px;text-align:center;color:rgba(0,217,255,0.4);font-size:13px;font-weight:600;cursor:pointer">
+            &#9889; Skip All Meals
+          </div>
+        </div>
+
+        <div class="bottom-nav a-nav">
+          <div class="nav-item active"><div class="nav-icon">&#127968;</div>Home</div>
+          <div class="nav-item"><div class="nav-icon">&#128197;</div>Calendar</div>
+          <div class="nav-item"><div class="nav-icon">&#128179;</div>Bill</div>
+          <div class="nav-item"><div class="nav-icon">&#128100;</div>Me</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONCEPT A: Login -->
+  <div class="screen-wrap">
+    <div class="screen-label" style="color:#00D9FF">Login</div>
+    <div class="phone" style="border-color:#1A2A3A">
+      <div class="phone-inner a-bg">
+        <div style="min-height:100%;display:flex;flex-direction:column;align-items:center;padding:80px 28px 40px;position:relative;overflow:hidden">
+          <div class="a-aurora" style="top:60px;left:50%;transform:translateX(-50%)"></div>
+          <div class="a-aurora2" style="top:120px;left:30%"></div>
+          <div class="particles">
+            <div class="particle" style="left:15%;bottom:0;animation-duration:5s"></div>
+            <div class="particle" style="left:65%;bottom:0;animation-duration:4s;animation-delay:1s"></div>
+            <div class="particle" style="left:45%;bottom:0;animation-duration:6s;animation-delay:2s"></div>
+          </div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:38px;font-weight:700;color:#fff;margin-top:80px;position:relative;z-index:1">MESS <span style="color:#00D9FF">101</span></div>
+          <div style="color:rgba(255,255,255,0.3);font-size:13px;margin-top:4px;margin-bottom:44px;position:relative;z-index:1">Track. Skip. Save.</div>
+
+          <div style="width:100%;position:relative;z-index:1">
+            <input style="width:100%;padding:16px 16px 16px 44px;background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);border-radius:14px;color:#F0F4F8;font-size:14px;outline:none;margin-bottom:12px;font-family:Inter,sans-serif" placeholder="Email address">
+            <input style="width:100%;padding:16px 16px 16px 44px;background:rgba(255,255,255,0.04);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.06);border-radius:14px;color:#F0F4F8;font-size:14px;outline:none;margin-bottom:16px;font-family:Inter,sans-serif" type="password" placeholder="Password">
+
+            <button style="width:100%;padding:16px;background:linear-gradient(135deg,#00D9FF,#8B5CF6);border:none;border-radius:14px;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;position:relative;overflow:hidden">
+              Sign In
+            </button>
+
+            <div style="display:flex;align-items:center;gap:14px;margin:20px 0;color:rgba(255,255,255,0.2);font-size:12px">
+              <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+              or
+              <div style="flex:1;height:1px;background:rgba(255,255,255,0.06)"></div>
+            </div>
+
+            <button style="width:100%;padding:14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:14px;color:#F0F4F8;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">
+              Continue with Google
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ===== CONCEPT B ===== -->
+<div class="concept-title" style="color:#39FF14">Concept B: Neon Brutalist</div>
+<p class="concept-desc">
+  Hard edges, terminal aesthetic, neon scan lines, glitch effects, monospace counters.
+  <br><span class="tag tag-green">Cyberpunk</span> <span class="tag tag-green">Glitch Effects</span> <span class="tag tag-green">Terminal</span> <span class="tag tag-green">Hard Edges</span>
+</p>
+
+<div class="screens">
+  <div class="screen-wrap">
+    <div class="screen-label" style="color:#39FF14">Dashboard</div>
+    <div class="phone" style="border-color:#1A1A1A;border-radius:12px">
+      <div class="phone-inner b-bg">
+        <div class="b-header">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="b-greeting">// GOOD EVENING</div>
+              <div class="b-name glitch">Rohit Kumar</div>
+            </div>
+            <div class="b-date">18.05.26</div>
+          </div>
+        </div>
+
+        <div class="b-stats">
+          <div class="b-stat"><div class="val">NV-3x</div><div class="lbl">Plan</div></div>
+          <div class="b-stat"><div class="val">&#8377;3,000</div><div class="lbl">Rate</div></div>
+          <div class="b-stat"><div class="val">02</div><div class="lbl">Skipped</div></div>
+          <div class="b-stat"><div class="val">00</div><div class="lbl">Off Days</div></div>
+        </div>
+
+        <div style="padding:4px 22px 100px">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:#555;margin-bottom:12px;font-weight:700">
+            > TODAY'S_MEALS <span class="cursor-blink"></span>
+          </div>
+
+          <div class="b-card locked">
+            <div class="b-icon" style="color:#333">&#9788;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px;color:#444">BREAKFAST</div>
+              <div style="font-size:11px;color:#333;font-family:'Space Grotesk',monospace">STATUS: LOCKED</div>
+            </div>
+          </div>
+
+          <div class="b-card locked">
+            <div class="b-icon" style="color:#333">&#9728;&#65039;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px;color:#444">LUNCH</div>
+              <div style="font-size:11px;color:#333;font-family:'Space Grotesk',monospace">STATUS: LOCKED</div>
+            </div>
+          </div>
+
+          <div class="b-card taking">
+            <div class="b-icon" style="color:#39FF14">&#127769;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">DINNER</div>
+              <div style="font-size:11px;color:#39FF14;font-family:'Space Grotesk',monospace">STATUS: ACTIVE</div>
+              <div class="b-progress">
+                <div class="b-progress-fill" style="width:35%"></div>
+              </div>
+              <div class="b-progress-text">02:14:00 REMAINING</div>
+            </div>
+            <button class="b-btn skip">SKIP</button>
+          </div>
+
+          <div class="b-card skipped">
+            <div class="b-icon" style="color:#FF3366">&#127769;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">DINNER</div>
+              <div style="font-size:11px;color:#FF3366;font-family:'Space Grotesk',monospace">STATUS: SKIPPED</div>
+            </div>
+            <button class="b-btn undo">UNDO</button>
+          </div>
+          <div style="text-align:center;font-size:9px;color:#333;margin:4px 0 12px;text-transform:uppercase;letter-spacing:1px">active | skipped states</div>
+
+          <div style="padding:10px;border:1px dashed #222;text-align:center;color:#444;font-size:11px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:2px">
+            [!] SKIP_ALL_MEALS
+          </div>
+        </div>
+
+        <div class="bottom-nav b-nav">
+          <div class="nav-item active"><div class="nav-icon">&#9632;</div>HOME</div>
+          <div class="nav-item"><div class="nav-icon">&#9632;</div>CAL</div>
+          <div class="nav-item"><div class="nav-icon">&#9632;</div>BILL</div>
+          <div class="nav-item"><div class="nav-icon">&#9632;</div>ME</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrap">
+    <div class="screen-label" style="color:#39FF14">Login</div>
+    <div class="phone" style="border-color:#1A1A1A;border-radius:12px">
+      <div class="phone-inner b-bg">
+        <div style="min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 28px;position:relative">
+          <div style="position:absolute;top:0;left:0;right:0;height:2px;background:#39FF14;animation:scanLine 3s ease-in-out infinite"></div>
+
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:42px;font-weight:700;color:#fff;letter-spacing:-2px" class="glitch">MESS<span style="color:#39FF14">101</span></div>
+          <div style="color:#333;font-size:11px;text-transform:uppercase;letter-spacing:3px;margin-top:4px;margin-bottom:48px;font-family:'Space Grotesk',monospace">TRACK // SKIP // SAVE</div>
+
+          <div style="width:100%">
+            <div style="font-size:10px;color:#39FF14;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-family:'Space Grotesk',monospace">> EMAIL</div>
+            <input style="width:100%;padding:14px;background:#111;border:1px solid #222;border-radius:2px;color:#F0F4F8;font-size:14px;outline:none;margin-bottom:16px;font-family:'Space Grotesk',sans-serif" placeholder="user@email.com">
+
+            <div style="font-size:10px;color:#39FF14;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-family:'Space Grotesk',monospace">> PASSWORD</div>
+            <input style="width:100%;padding:14px;background:#111;border:1px solid #222;border-radius:2px;color:#F0F4F8;font-size:14px;outline:none;margin-bottom:20px;font-family:'Space Grotesk',sans-serif" type="password" placeholder="**********">
+
+            <button style="width:100%;padding:14px;background:#39FF14;border:none;border-radius:2px;color:#0C0C0C;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:2px">
+              [ENTER]
+            </button>
+
+            <div style="display:flex;align-items:center;gap:12px;margin:24px 0;color:#333;font-size:11px;font-family:'Space Grotesk',monospace">
+              <div style="flex:1;height:1px;background:#1A1A1A"></div>
+              OR
+              <div style="flex:1;height:1px;background:#1A1A1A"></div>
+            </div>
+
+            <button style="width:100%;padding:14px;background:transparent;border:1px solid #222;border-radius:2px;color:#888;font-size:13px;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif;text-transform:uppercase;letter-spacing:1px">
+              GOOGLE AUTH
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ===== CONCEPT C ===== -->
+<div class="concept-title" style="color:#FABD00">Concept C: Soft Premium</div>
+<p class="concept-desc">
+  Warm gold accents, smooth hover transitions, floating mesh gradients, pulsing progress indicators, elegant curves.
+  <br><span class="tag tag-gold">Elegant</span> <span class="tag tag-gold">Warm Tones</span> <span class="tag tag-gold">Smooth Easing</span> <span class="tag tag-gold">Premium Feel</span>
+</p>
+
+<div class="screens">
+  <div class="screen-wrap">
+    <div class="screen-label" style="color:#FABD00">Dashboard</div>
+    <div class="phone" style="border-color:#1A1A1A">
+      <div class="phone-inner c-bg">
+        <div class="c-header">
+          <div class="c-mesh"></div>
+          <div class="c-mesh2"></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1">
+            <div>
+              <div class="c-greeting">Good evening</div>
+              <div class="c-name">Rohit Kumar</div>
+            </div>
+            <div class="c-date">
+              <div class="day">18</div>
+              <div class="month">May</div>
+            </div>
+          </div>
+          <div class="c-stats">
+            <div class="c-stat"><div class="icon">&#127860;</div><div class="val">NV 3x</div><div class="lbl">Plan</div></div>
+            <div class="c-stat"><div class="icon">&#8377;</div><div class="val">3,000</div><div class="lbl">Rate</div></div>
+            <div class="c-stat"><div class="icon">&#9197;</div><div class="val">2</div><div class="lbl">Skips</div></div>
+            <div class="c-stat"><div class="icon">&#128197;</div><div class="val">0</div><div class="lbl">Off</div></div>
+          </div>
+        </div>
+
+        <div style="padding:22px 18px 100px" class="stagger">
+          <div style="font-weight:700;font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+            <span style="width:3px;height:16px;background:linear-gradient(180deg,#FABD00,#F59E0B);border-radius:2px;display:inline-block"></span>
+            Today's Meals
+            <span style="margin-left:auto;font-size:11px;color:#FABD00;opacity:0.5">Monday</span>
+          </div>
+
+          <div class="c-card locked">
+            <div class="c-icon-box muted">&#9788;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px;color:#444">Breakfast</div>
+              <div style="font-size:12px;color:#333;display:flex;align-items:center;gap:4px">&#128274; Locked</div>
+            </div>
+          </div>
+
+          <div class="c-card locked">
+            <div class="c-icon-box muted">&#9728;&#65039;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px;color:#444">Lunch</div>
+              <div style="font-size:12px;color:#333;display:flex;align-items:center;gap:4px">&#128274; Locked</div>
+            </div>
+          </div>
+
+          <div class="c-card taking">
+            <div class="c-icon-box gold">&#127769;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">Dinner</div>
+              <div style="font-size:12px;color:#FABD00;display:flex;align-items:center;gap:4px">&#10003; Taking</div>
+              <div class="c-progress">
+                <div class="c-progress-fill" style="width:35%"></div>
+              </div>
+              <div style="font-size:10px;color:rgba(250,189,0,0.4);margin-top:4px;text-align:right">2h 14m left</div>
+            </div>
+            <button class="c-btn skip">Skip</button>
+          </div>
+
+          <div class="c-card skipped">
+            <div class="c-icon-box rose">&#127769;</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px">Dinner</div>
+              <div style="font-size:12px;color:#F43F5E;display:flex;align-items:center;gap:4px">&#10007; Skipped</div>
+            </div>
+            <button class="c-btn undo">Undo</button>
+          </div>
+          <div style="text-align:center;font-size:10px;color:#333;margin:-4px 0 8px">&#8593; taking &nbsp;|&nbsp; skipped &#8593;</div>
+
+          <div style="padding:12px;border:1px dashed rgba(244,63,94,0.2);border-radius:16px;text-align:center;color:rgba(244,63,94,0.5);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.3s">
+            &#9889; Skip All Meals
+          </div>
+        </div>
+
+        <div class="bottom-nav c-nav">
+          <div class="nav-item active"><div class="nav-icon">&#127968;</div>Home</div>
+          <div class="nav-item"><div class="nav-icon">&#128197;</div>Calendar</div>
+          <div class="nav-item"><div class="nav-icon">&#128179;</div>Bill</div>
+          <div class="nav-item"><div class="nav-icon">&#128100;</div>Me</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrap">
+    <div class="screen-label" style="color:#FABD00">Login</div>
+    <div class="phone" style="border-color:#1A1A1A">
+      <div class="phone-inner c-bg">
+        <div style="min-height:100%;display:flex;flex-direction:column;align-items:center;padding:80px 28px 40px;position:relative;overflow:hidden">
+          <div class="c-mesh" style="top:20px;right:auto;left:50%;transform:translateX(-50%)"></div>
+          <div class="c-mesh2" style="bottom:200px;left:auto;right:-40px"></div>
+
+          <div style="width:70px;height:70px;border-radius:20px;background:linear-gradient(135deg,rgba(250,189,0,0.15),rgba(139,92,246,0.1));display:flex;align-items:center;justify-content:center;margin-top:60px;position:relative;z-index:1;border:1px solid rgba(250,189,0,0.1)">
+            <span style="font-size:32px">&#127860;</span>
+          </div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;font-weight:800;color:#fff;margin-top:16px;position:relative;z-index:1">Mess 101</div>
+          <div style="color:rgba(255,255,255,0.3);font-size:13px;margin-top:4px;margin-bottom:40px;position:relative;z-index:1">Track. Skip. Save.</div>
+
+          <div style="width:100%;position:relative;z-index:1">
+            <input style="width:100%;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:16px;color:#F0F4F8;font-size:14px;outline:none;margin-bottom:12px;font-family:Inter,sans-serif;transition:border-color 0.3s" placeholder="Email address">
+            <input style="width:100%;padding:16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:16px;color:#F0F4F8;font-size:14px;outline:none;margin-bottom:16px;font-family:Inter,sans-serif" type="password" placeholder="Password">
+
+            <button style="width:100%;padding:16px;background:linear-gradient(135deg,#FABD00,#F59E0B);border:none;border-radius:16px;color:#0F0F12;font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(250,189,0,0.2);position:relative;overflow:hidden">
+              Sign In
+            </button>
+
+            <div style="display:flex;align-items:center;gap:14px;margin:22px 0;color:rgba(255,255,255,0.15);font-size:12px">
+              <div style="flex:1;height:1px;background:rgba(255,255,255,0.05)"></div>
+              or
+              <div style="flex:1;height:1px;background:rgba(255,255,255,0.05)"></div>
+            </div>
+
+            <button style="width:100%;padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:16px;color:#F0F4F8;font-size:14px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">
+              Continue with Google
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<br><br>
+<div style="max-width:800px;margin:40px auto;padding:24px;background:#111;border:1px solid #222;border-radius:16px">
+  <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;margin-bottom:16px;text-align:center">Animation Comparison</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <tr style="border-bottom:1px solid #1A1A1A">
+      <td style="padding:10px;color:#6B7B8D;font-weight:600">Feature</td>
+      <td style="padding:10px;color:#00D9FF;font-weight:700;text-align:center">A: Aurora</td>
+      <td style="padding:10px;color:#39FF14;font-weight:700;text-align:center">B: Brutalist</td>
+      <td style="padding:10px;color:#FABD00;font-weight:700;text-align:center">C: Premium</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A1A">
+      <td style="padding:10px;color:#6B7B8D">Background</td>
+      <td style="padding:10px;text-align:center">Flowing aurora blobs</td>
+      <td style="padding:10px;text-align:center">Neon scan line</td>
+      <td style="padding:10px;text-align:center">Warm mesh gradients</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A1A">
+      <td style="padding:10px;color:#6B7B8D">Cards</td>
+      <td style="padding:10px;text-align:center">Glass + shimmer</td>
+      <td style="padding:10px;text-align:center">Hard border + glow</td>
+      <td style="padding:10px;text-align:center">Soft hover lift</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A1A">
+      <td style="padding:10px;color:#6B7B8D">Progress bar</td>
+      <td style="padding:10px;text-align:center">Rainbow gradient shift</td>
+      <td style="padding:10px;text-align:center">Neon glow trail</td>
+      <td style="padding:10px;text-align:center">Pulsing dot endpoint</td>
+    </tr>
+    <tr style="border-bottom:1px solid #1A1A1A">
+      <td style="padding:10px;color:#6B7B8D">Text effects</td>
+      <td style="padding:10px;text-align:center">Particle float</td>
+      <td style="padding:10px;text-align:center">Glitch + cursor blink</td>
+      <td style="padding:10px;text-align:center">Stagger fade-in</td>
+    </tr>
+    <tr>
+      <td style="padding:10px;color:#6B7B8D">Vibe</td>
+      <td style="padding:10px;text-align:center">Dreamy sci-fi</td>
+      <td style="padding:10px;text-align:center">Cyberpunk hacker</td>
+      <td style="padding:10px;text-align:center">Luxury fintech</td>
+    </tr>
+  </table>
+</div>
+
+<p style="text-align:center;color:#333;margin-top:40px;font-size:13px">
+  All animations are live CSS — scroll within each phone &bull; Hover over cards to see interactions
+</p>
+
+</body>
+</html>

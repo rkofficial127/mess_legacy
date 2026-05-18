@@ -13,7 +13,9 @@ class MessApp extends ConsumerWidget {
 
     return MaterialApp.router(
       title: 'Mess 101',
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

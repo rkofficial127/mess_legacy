@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/providers/auth_provider.dart';
 import '../features/admin/admin_dashboard_screen.dart';
+import '../features/admin/attendance_report_screen.dart';
 import '../features/admin/bills_management_screen.dart';
 import '../features/admin/mess_off_screen.dart';
 import '../features/admin/user_management_screen.dart';
@@ -84,6 +85,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/mess-off',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: MessOffScreen()),
+          ),
+          GoRoute(
+            path: '/admin/attendance',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AttendanceReportScreen()),
           ),
           GoRoute(
             path: '/admin/bills',

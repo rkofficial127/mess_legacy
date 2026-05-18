@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     breakfast_time: time = Field(default=time(8, 0))
     lunch_time: time = Field(default=time(12, 0))
     dinner_time: time = Field(default=time(20, 0))
-    breakfast_skip_cutoff: time = Field(default=time(22, 0))
+    breakfast_skip_cutoff: time = Field(default=time(20, 0))
     lunch_skip_cutoff_hours: int = Field(default=4)
     dinner_skip_cutoff_hours: int = Field(default=4)
 

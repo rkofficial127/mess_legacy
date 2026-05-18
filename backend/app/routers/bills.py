@@ -7,14 +7,26 @@ from sqlalchemy import select
 from app.dependencies import CurrentAdmin, CurrentUser, DbSession
 from app.models.bill import MonthlyBill
 from app.models.user import User
-from app.schemas.bill import BillGenerateRequest, BillResponse, BillSummary
-from app.services.billing_service import generate_bills
+from app.schemas.bill import BillGenerateRequest, BillGenerateUserRequest, BillResponse, BillSummary
+from app.services.billing_service import generate_bill_for_user, generate_bills
 from app.services.pdf_service import generate_bill_pdf
 
 router = APIRouter(prefix="/api/bills", tags=["bills"])
 
 
-@router.post("/generate", response_model=list[BillResponse], status_code=status.HTTP_201_CREATED)
+async def _enrich_bills(db, bills: list) -> list[dict]:
+    user_ids = {b.user_id for b in bills}
+    result = await db.execute(select(User).where(User.id.in_(user_ids)))
+    user_map = {u.id: u.full_name for u in result.scalars().all()}
+    enriched = []
+    for b in bills:
+        data = BillResponse.model_validate(b).model_dump()
+        data["user_full_name"] = user_map.get(b.user_id, "Unknown")
+        enriched.append(data)
+    return enriched
+
+
+@router.post("/generate", status_code=status.HTTP_201_CREATED)
 async def generate(payload: BillGenerateRequest, db: DbSession, _: CurrentAdmin):
     bills = await generate_bills(db, payload.month, payload.year)
     if not bills:
@@ -22,7 +34,34 @@ async def generate(payload: BillGenerateRequest, db: DbSession, _: CurrentAdmin)
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No new bills to generate (all already exist or no active subscriptions)",
         )
-    return bills
+    return await _enrich_bills(db, bills)
+
+
+@router.post("/generate-user", status_code=status.HTTP_201_CREATED)
+async def generate_user_bill(payload: BillGenerateUserRequest, db: DbSession, _: CurrentAdmin):
+    existing = await db.execute(
+        select(MonthlyBill).where(
+            MonthlyBill.user_id == payload.user_id,
+            MonthlyBill.month == payload.month,
+            MonthlyBill.year == payload.year,
+        )
+    )
+    old = existing.scalar_one_or_none()
+    if old:
+        await db.delete(old)
+        await db.flush()
+
+    bill = await generate_bill_for_user(db, payload.user_id, payload.month, payload.year)
+    if bill is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User has no active subscription for this month",
+        )
+    db.add(bill)
+    await db.commit()
+    await db.refresh(bill)
+    enriched = await _enrich_bills(db, [bill])
+    return enriched[0]
 
 
 @router.get("/me", response_model=BillResponse)
@@ -47,7 +86,7 @@ async def my_bill(
     return bill
 
 
-@router.get("", response_model=list[BillResponse])
+@router.get("")
 async def list_bills(
     db: DbSession,
     _: CurrentAdmin,
@@ -59,7 +98,8 @@ async def list_bills(
         .where(MonthlyBill.month == month, MonthlyBill.year == year)
         .order_by(MonthlyBill.generated_at.desc())
     )
-    return list(result.scalars().all())
+    bills = list(result.scalars().all())
+    return await _enrich_bills(db, bills)
 
 
 @router.get("/summary", response_model=BillSummary)

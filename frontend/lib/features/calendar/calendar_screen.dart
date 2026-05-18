@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/constants.dart';
 import '../../core/providers/meal_skip_provider.dart';
+import '../../core/utils/meal_cutoff.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -93,14 +95,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: Theme.of(context)
-                      .textTheme
-                      .titleMedium!
-                      .copyWith(fontWeight: FontWeight.w600),
+                  titleTextStyle: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: cs.onSurface,
+                  ),
                   leftChevronIcon:
-                      Icon(Icons.chevron_left, color: cs.onSurface),
+                      Icon(Icons.chevron_left, color: cs.onSurfaceVariant),
                   rightChevronIcon:
-                      Icon(Icons.chevron_right, color: cs.onSurface),
+                      Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
                 ),
                 daysOfWeekStyle: DaysOfWeekStyle(
                   weekdayStyle: TextStyle(
@@ -108,7 +111,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w600),
                   weekendStyle: TextStyle(
-                      color: cs.onSurfaceVariant.withOpacity(0.6),
+                      color: cs.onSurfaceVariant.withOpacity(0.5),
                       fontSize: 12,
                       fontWeight: FontWeight.w600),
                 ),
@@ -120,22 +123,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
           // Legend
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _LegendDot(color: cs.primaryContainer, label: 'Normal'),
+                _LegendDot(color: cs.primary, label: 'Today'),
                 const SizedBox(width: 16),
-                _LegendDot(color: Colors.amber.shade200, label: 'Skipped'),
+                _LegendDot(color: cs.error, label: 'Skipped'),
                 const SizedBox(width: 16),
-                _LegendDot(color: cs.errorContainer, label: 'All Skipped'),
-                const SizedBox(width: 16),
-                _LegendDot(color: Colors.grey.shade300, label: 'Mess Off'),
+                _LegendDot(color: cs.onSurfaceVariant, label: 'Mess Off'),
               ],
             ),
           ),
 
-          const Divider(),
+          Divider(color: cs.outline, height: 1),
 
           if (_selectedDay != null)
             Expanded(
@@ -143,7 +144,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 day: _selectedDay!,
                 month: month,
                 year: year,
-                mealsPerDay: subAsync.valueOrNull?.planMealsPerDay ?? 2,
+                mealsPerDay: subAsync.valueOrNull?.planMealsPerDay ?? 0,
+                hasSubscription: subAsync.valueOrNull != null,
               ),
             )
           else
@@ -155,7 +157,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     Icon(Icons.touch_app_outlined,
                         size: 48, color: cs.onSurfaceVariant.withOpacity(0.3)),
                     const SizedBox(height: 12),
-                    Text('Tap a day to see details or skip meals',
+                    Text('Tap a day to see details',
                         style: TextStyle(color: cs.onSurfaceVariant)),
                   ],
                 ),
@@ -178,8 +180,8 @@ class _LegendDot extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 10,
-          height: 10,
+          width: 7,
+          height: 7,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
@@ -210,40 +212,48 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
-    Color bg;
-    if (messOffs.any((m) => m == 'ALL') || messOffs.length >= 3) {
-      bg = Colors.grey.shade300;
-    } else if (skips.length >= 3 ||
-        (day.weekday == DateTime.sunday && skips.isNotEmpty)) {
-      bg = cs.errorContainer;
-    } else if (skips.isNotEmpty) {
-      bg = Colors.amber.shade200;
-    } else if (day.isBefore(DateTime.now()) &&
-        day.month == DateTime.now().month) {
-      bg = cs.primaryContainer.withOpacity(0.4);
-    } else {
-      bg = Colors.transparent;
-    }
+    final hasSkip = skips.isNotEmpty;
+    final hasMessOff = messOffs.any((m) => m == 'ALL') || messOffs.length >= 3;
 
     return Container(
       margin: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: isSelected ? cs.primary : bg,
-        shape: BoxShape.circle,
+        color: isSelected ? cs.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
         border: isToday && !isSelected
-            ? Border.all(color: cs.primary, width: 2)
+            ? Border.all(color: cs.primary, width: 1.5)
             : null,
       ),
       alignment: Alignment.center,
-      child: Text(
-        '${day.day}',
-        style: TextStyle(
-          fontWeight:
-              isToday || isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? cs.onPrimary : cs.onSurface,
-          fontSize: 14,
-        ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Text(
+            '${day.day}',
+            style: TextStyle(
+              fontWeight:
+                  isToday || isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? cs.onPrimary
+                  : isToday
+                      ? cs.primary
+                      : cs.onSurface,
+              fontSize: 14,
+            ),
+          ),
+          if (!isSelected && (hasSkip || hasMessOff))
+            Positioned(
+              bottom: 4,
+              child: Container(
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: hasMessOff ? cs.onSurfaceVariant : cs.error,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -254,12 +264,14 @@ class _DayDetail extends ConsumerWidget {
   final int month;
   final int year;
   final int mealsPerDay;
+  final bool hasSubscription;
 
   const _DayDetail({
     required this.day,
     required this.month,
     required this.year,
     required this.mealsPerDay,
+    required this.hasSubscription,
   });
 
   @override
@@ -269,23 +281,31 @@ class _DayDetail extends ConsumerWidget {
         ref.watch(monthSkipsProvider((month: month, year: year)));
     final messOffAsync =
         ref.watch(messOffProvider((month: month, year: year)));
+    final extrasAsync =
+        ref.watch(extraMealsProvider((month: month, year: year)));
 
     final skips = skipsAsync.valueOrNull ?? [];
     final messOffs = messOffAsync.valueOrNull ?? [];
+    final extras = extrasAsync.valueOrNull ?? [];
 
     final daySkips = skips.where((s) => isSameDay(s.date, day)).toList();
     final dayMessOffs = messOffs.where((m) => isSameDay(m.date, day)).toList();
+    final dayExtras = extras.where((e) => isSameDay(e.date, day)).toList();
     final isFullDayOff = dayMessOffs.any((m) => m.mealType == 'ALL');
 
     final isSunday = day.weekday == DateTime.sunday;
     List<String> mealsForDay;
-    if (isSunday) {
+    if (!hasSubscription) {
+      mealsForDay = [];
+    } else if (isSunday) {
       mealsForDay = ['LUNCH'];
     } else if (mealsPerDay == 2) {
       mealsForDay = ['LUNCH', 'DINNER'];
     } else {
       mealsForDay = ['BREAKFAST', 'LUNCH', 'DINNER'];
     }
+
+    final isToday = isSameDay(day, DateTime.now());
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -295,32 +315,85 @@ class _DayDetail extends ConsumerWidget {
             Expanded(
               child: Text(
                 DateFormat('EEEE, d MMMM').format(day),
-                style: Theme.of(context).textTheme.titleMedium,
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600, fontSize: 15),
               ),
             ),
-            if (day.isBefore(DateTime.now().subtract(const Duration(days: 1))))
+            if (isToday)
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+                  color: cs.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('TODAY',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: cs.primary,
+                    )),
+              )
+            else if (day
+                .isBefore(DateTime.now().subtract(const Duration(days: 1))))
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: cs.onSurfaceVariant.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text('Past',
                     style: TextStyle(
-                        fontSize: 12, color: cs.onSurfaceVariant)),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurfaceVariant)),
               ),
           ],
         ),
         const SizedBox(height: 16),
 
-        // Full day mess-off banner
+        if (!hasSubscription) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: cs.tertiary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: cs.tertiary.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: cs.tertiary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('No active plan',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: cs.tertiary,
+                          )),
+                      Text(
+                        'Contact your mess admin to get a meal plan.',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: cs.tertiary.withOpacity(0.8)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
         if (isFullDayOff) ...[
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: cs.errorContainer,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
@@ -339,7 +412,8 @@ class _DayDetail extends ConsumerWidget {
                         Text(dayMessOffs.first.reason!,
                             style: TextStyle(
                                 fontSize: 13,
-                                color: cs.onErrorContainer.withOpacity(0.8))),
+                                color:
+                                    cs.onErrorContainer.withOpacity(0.8))),
                     ],
                   ),
                 ),
@@ -347,75 +421,67 @@ class _DayDetail extends ConsumerWidget {
             ),
           ),
         ] else ...[
-          // Per-meal cards with skip toggle
           ...mealsForDay.map((meal) {
             final isMealMessOff = dayMessOffs
                 .any((m) => m.mealType == meal || m.mealType == 'ALL');
             final skip =
                 daySkips.where((s) => s.mealType == meal).firstOrNull;
             final isSkipped = skip != null;
+            final frozen = isMealCutoffPassed(meal, day);
 
-            final emoji = mealEmoji[meal] ?? '';
-            final label = mealLabel[meal] ?? meal;
-
-            Color cardColor;
             Color accentColor;
             String statusText;
-            IconData statusIcon;
 
             if (isMealMessOff) {
-              cardColor = cs.surfaceContainerHighest;
               accentColor = cs.onSurfaceVariant;
               statusText = 'Mess Off';
-              statusIcon = Icons.event_busy_outlined;
             } else if (isSkipped) {
-              cardColor = cs.errorContainer.withOpacity(0.5);
               accentColor = cs.error;
-              statusText = 'Skipped';
-              statusIcon = Icons.close_rounded;
+              statusText = frozen ? 'Skipped (Locked)' : 'Skipped';
+            } else if (frozen) {
+              accentColor = cs.onSurfaceVariant;
+              statusText = 'Taking (Locked)';
             } else {
-              cardColor = cs.primaryContainer.withOpacity(0.4);
               accentColor = cs.primary;
               statusText = 'Taking';
-              statusIcon = Icons.check_circle_outline;
             }
 
+            final mealIcons = {
+              'BREAKFAST': Icons.wb_twilight_rounded,
+              'LUNCH': Icons.wb_sunny_rounded,
+              'DINNER': Icons.nightlight_round,
+            };
+
             return Container(
-              margin: const EdgeInsets.only(bottom: 10),
+              margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                    color: accentColor.withOpacity(0.2)),
+                color: cs.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: cs.outline),
               ),
               child: Row(
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 28)),
+                  Icon(mealIcons[meal] ?? Icons.restaurant,
+                      size: 20, color: accentColor),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(label,
+                        Text(mealLabel[meal] ?? meal,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 15)),
-                        Row(
-                          children: [
-                            Icon(statusIcon, size: 14, color: accentColor),
-                            const SizedBox(width: 4),
-                            Text(statusText,
-                                style: TextStyle(
-                                    color: accentColor,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500)),
-                          ],
-                        ),
+                                fontWeight: FontWeight.w600, fontSize: 14)),
+                        Text(statusText,
+                            style: TextStyle(
+                                color: accentColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
-                  if (!isMealMessOff)
-                    FilledButton.tonal(
+                  if (!isMealMessOff && !frozen)
+                    TextButton(
                       onPressed: () async {
                         try {
                           if (isSkipped) {
@@ -428,40 +494,43 @@ class _DayDetail extends ConsumerWidget {
                         } catch (e) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(e.toString())),
+                              SnackBar(content: Text(e.toString())),
                             );
                           }
                         }
                       },
-                      style: FilledButton.styleFrom(
+                      style: TextButton.styleFrom(
+                        foregroundColor:
+                            isSkipped ? cs.primary : cs.error,
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 16),
                         minimumSize: const Size(0, 36),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
                       ),
                       child: Text(isSkipped ? 'Undo' : 'Skip',
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w600)),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600)),
                     ),
+                  if (frozen && !isMealMessOff)
+                    Icon(Icons.lock_outline,
+                        size: 16, color: cs.onSurfaceVariant),
                 ],
               ),
             );
           }),
 
-          // Partial mess-off entries
-          if (dayMessOffs.isNotEmpty)
+          if (dayMessOffs.isNotEmpty && !isFullDayOff)
             ...dayMessOffs.map((m) => Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
+                    color: cs.surfaceContainer,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: cs.outline),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.event_busy,
-                          size: 18, color: cs.onSurfaceVariant),
+                          size: 16, color: cs.onSurfaceVariant),
                       const SizedBox(width: 10),
                       Text(
                         '${mealLabel[m.mealType] ?? m.mealType} — Mess Off',
@@ -482,23 +551,110 @@ class _DayDetail extends ConsumerWidget {
                 )),
         ],
 
+        // Skip all button
+        if (!isFullDayOff && mealsForDay.length > 1) ...[
+          Builder(builder: (ctx) {
+            final allSkipped = mealsForDay.every(
+                (m) => daySkips.any((s) => s.mealType == m));
+            final anyFrozen = mealsForDay.any((m) =>
+                isMealCutoffPassed(m, day) &&
+                !daySkips.any((s) => s.mealType == m));
+            if (allSkipped) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: OutlinedButton.icon(
+                onPressed: anyFrozen
+                    ? null
+                    : () async {
+                        try {
+                          await bulkSkipDay(day);
+                          ref.invalidate(monthSkipsProvider(
+                              (month: month, year: year)));
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(content: Text(e.toString())),
+                            );
+                          }
+                        }
+                      },
+                icon: const Icon(Icons.block, size: 16),
+                label: const Text('Skip All Meals'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: cs.error,
+                  side: BorderSide(color: cs.error.withOpacity(0.3)),
+                  minimumSize: const Size(double.infinity, 44),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            );
+          }),
+        ],
+
+        // Extra meals
+        if (dayExtras.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text('Extra Meals',
+              style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: cs.secondary)),
+          const SizedBox(height: 6),
+          ...dayExtras.map((e) => Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: cs.secondary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.secondary.withOpacity(0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.add_circle_outline,
+                        size: 16, color: cs.secondary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${mealLabel[e.mealType] ?? e.mealType} (Extra)',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: cs.secondary),
+                          ),
+                          if (e.note != null)
+                            Text(e.note!,
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: cs.onSurfaceVariant)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+        ],
+
         if (isSunday)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: cs.tertiaryContainer.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(12),
+                color: cs.secondary.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: cs.secondary.withOpacity(0.15)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      size: 18, color: cs.onTertiaryContainer),
+                  Icon(Icons.info_outline, size: 16, color: cs.secondary),
                   const SizedBox(width: 8),
                   Text('Only lunch on Sundays',
                       style: TextStyle(
-                          fontSize: 13, color: cs.onTertiaryContainer)),
+                          fontSize: 13, color: cs.onSurfaceVariant)),
                 ],
               ),
             ),

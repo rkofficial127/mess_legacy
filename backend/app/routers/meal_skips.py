@@ -6,9 +6,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import CurrentAdmin, CurrentUser, DbSession
-from app.models.meal_skip import MealSkip
-from app.schemas.meal_skip import AdminSkipOverride, SkipCreate, SkipResponse
-from app.services.meal_skip_service import validate_skip
+from app.models.meal_skip import MealSkip, MealType
+from app.schemas.meal_skip import AdminSkipOverride, BulkSkipCreate, SkipCreate, SkipResponse
+from app.services.meal_skip_service import _meals_for_plan, _get_user_plan, validate_skip
 
 router = APIRouter(prefix="/api/meal-skips", tags=["meal-skips"])
 
@@ -104,6 +104,36 @@ async def list_skips(
         .order_by(MealSkip.date)
     )
     return list(result.scalars().all())
+
+
+@router.post("/bulk", response_model=list[SkipResponse], status_code=status.HTTP_201_CREATED)
+async def bulk_skip(
+    payload: BulkSkipCreate, db: DbSession, current_user: CurrentUser
+) -> list[MealSkip]:
+    plan = await _get_user_plan(db, current_user.id, payload.date)
+    if plan is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No active subscription for this month"
+        )
+    meals = _meals_for_plan(plan.meals_per_day, payload.date)
+    created = []
+    errors = []
+    for meal in meals:
+        err = await validate_skip(db, current_user.id, payload.date, meal)
+        if err:
+            errors.append(f"{meal.value}: {err}")
+            continue
+        skip_data = SkipCreate(date=payload.date, meal_type=meal)
+        try:
+            skip = await _insert_skip(db, current_user.id, skip_data)
+            created.append(skip)
+        except HTTPException:
+            pass
+    if not created and errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="; ".join(errors)
+        )
+    return created
 
 
 @router.post(

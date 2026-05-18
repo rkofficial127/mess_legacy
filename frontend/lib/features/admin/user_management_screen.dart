@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/models/user.dart';
 import '../../core/providers/admin_providers.dart';
 
 class UserManagementScreen extends ConsumerWidget {
@@ -41,29 +42,28 @@ class UserManagementScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: u.isActive
-                          ? cs.outlineVariant.withOpacity(0.5)
-                          : cs.error.withOpacity(0.3),
+                      color: u.isActive ? cs.outline : cs.error.withOpacity(0.3),
                     ),
                   ),
                   child: Row(
                     children: [
                       CircleAvatar(
-                        radius: 22,
+                        radius: 20,
                         backgroundColor: u.isActive
-                            ? cs.primaryContainer
-                            : Colors.grey.shade200,
+                            ? cs.primary.withOpacity(0.1)
+                            : cs.surfaceContainer,
                         child: Text(
                           u.fullName.isNotEmpty
                               ? u.fullName[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
                             color: u.isActive
-                                ? cs.onPrimaryContainer
-                                : Colors.grey,
+                                ? cs.primary
+                                : cs.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -86,12 +86,12 @@ class UserManagementScreen extends ConsumerWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: cs.error,
+                                      color: cs.error.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Text('Inactive',
+                                    child: Text('Inactive',
                                         style: TextStyle(
-                                            color: Colors.white,
+                                            color: cs.error,
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600)),
                                   ),
@@ -104,7 +104,6 @@ class UserManagementScreen extends ConsumerWidget {
                                     fontSize: 13, color: cs.onSurfaceVariant),
                                 overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 4),
-                            // Subscription status
                             subAsync.when(
                               loading: () => Text('Loading plan...',
                                   style: TextStyle(
@@ -116,25 +115,25 @@ class UserManagementScreen extends ConsumerWidget {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: Colors.orange.shade100,
+                                      color: cs.tertiary.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text('No Plan',
                                         style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.orange.shade800)),
+                                            color: cs.tertiary)),
                                   );
                                 }
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: cs.primaryContainer.withOpacity(0.5),
+                                    color: cs.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    '${sub.planName ?? 'Plan'} • ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}',
+                                    '${sub.planName ?? 'Plan'} · ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}',
                                     style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -154,16 +153,16 @@ class UserManagementScreen extends ConsumerWidget {
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: u.role == 'ADMIN'
-                                  ? cs.tertiaryContainer
-                                  : cs.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(8),
+                                  ? cs.secondary.withOpacity(0.1)
+                                  : cs.surfaceContainer,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(u.role,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   color: u.role == 'ADMIN'
-                                      ? cs.onTertiaryContainer
+                                      ? cs.secondary
                                       : cs.onSurfaceVariant,
                                 )),
                           ),
@@ -184,45 +183,57 @@ class UserManagementScreen extends ConsumerWidget {
   }
 
   void _showUserDetail(
-      BuildContext context, WidgetRef ref, dynamic user, List? plans) {
+      BuildContext context, WidgetRef ref, User user, List? plans) {
     final cs = Theme.of(context).colorScheme;
     final now = DateTime.now();
+    final nameCtrl = TextEditingController(text: user.fullName);
+    final phoneCtrl = TextEditingController(text: user.phone ?? '');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return Consumer(
-          builder: (ctx, ref, _) {
-            final subAsync = ref.watch(userSubscriptionProvider(
-                (userId: user.id, month: now.month, year: now.year)));
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          minChildSize: 0.4,
+          builder: (ctx, scrollController) {
+            return Consumer(
+              builder: (ctx, ref, _) {
+                final subAsync = ref.watch(userSubscriptionProvider(
+                    (userId: user.id, month: now.month, year: now.year)));
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(ctx).viewInsets.bottom,
-                left: 24,
-                right: 24,
-                top: 8,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // User info header
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: ListView(
+                    controller: scrollController,
+                    children: [
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: cs.onSurfaceVariant.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
                     Row(
                       children: [
                         CircleAvatar(
-                          radius: 28,
-                          backgroundColor: cs.primaryContainer,
+                          radius: 24,
+                          backgroundColor: cs.primary.withOpacity(0.1),
                           child: Text(
                             user.fullName.isNotEmpty
                                 ? user.fullName[0].toUpperCase()
                                 : '?',
                             style: TextStyle(
-                              fontSize: 22,
+                              fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: cs.onPrimaryContainer,
+                              color: cs.primary,
                             ),
                           ),
                         ),
@@ -236,12 +247,6 @@ class UserManagementScreen extends ConsumerWidget {
                               Text(user.email,
                                   style:
                                       TextStyle(color: cs.onSurfaceVariant)),
-                              if (user.phone != null &&
-                                  user.phone!.isNotEmpty)
-                                Text(user.phone!,
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        color: cs.onSurfaceVariant)),
                             ],
                           ),
                         ),
@@ -250,26 +255,138 @@ class UserManagementScreen extends ConsumerWidget {
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: user.isActive
-                                ? cs.primaryContainer
-                                : cs.errorContainer,
-                            borderRadius: BorderRadius.circular(8),
+                                ? cs.primary.withOpacity(0.1)
+                                : cs.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             user.isActive ? 'Active' : 'Inactive',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: user.isActive
-                                  ? cs.onPrimaryContainer
-                                  : cs.onErrorContainer,
+                              color: user.isActive ? cs.primary : cs.error,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                    // Current plan section
+                    Text('Edit Profile',
+                        style: Theme.of(ctx).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: phoneCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone',
+                        prefixIcon: Icon(Icons.phone_outlined),
+                      ),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              try {
+                                await updateUser(
+                                  userId: user.id,
+                                  fullName: nameCtrl.text.trim(),
+                                  phone: phoneCtrl.text.trim(),
+                                );
+                                ref.invalidate(usersProvider);
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Profile updated')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.save_outlined, size: 18),
+                            label: const Text('Save Changes'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Flexible(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: ctx,
+                                builder: (d) => AlertDialog(
+                                  title: Text(user.isActive
+                                      ? 'Deactivate User?'
+                                      : 'Activate User?'),
+                                  content: Text(user.isActive
+                                      ? '${user.fullName} will no longer be able to log in.'
+                                      : '${user.fullName} will be able to log in again.'),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(d, false),
+                                        child: const Text('Cancel')),
+                                    FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(d, true),
+                                        child: Text(user.isActive
+                                            ? 'Deactivate'
+                                            : 'Activate')),
+                                  ],
+                                ),
+                              );
+                              if (confirm != true) return;
+                              try {
+                                await updateUser(
+                                  userId: user.id,
+                                  isActive: !user.isActive,
+                                );
+                                ref.invalidate(usersProvider);
+                                if (ctx.mounted) Navigator.pop(ctx);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(user.isActive
+                                            ? '${user.fullName} deactivated'
+                                            : '${user.fullName} activated')),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor:
+                                  user.isActive ? cs.error : cs.primary,
+                              minimumSize: const Size(0, 52),
+                            ),
+                            child: Text(
+                                user.isActive ? 'Deactivate' : 'Activate'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
                     Text('Current Plan',
                         style: Theme.of(ctx).textTheme.titleMedium),
                     const SizedBox(height: 8),
@@ -283,17 +400,17 @@ class UserManagementScreen extends ConsumerWidget {
                         if (sub == null) {
                           return Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(14),
+                              color: cs.tertiary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(10),
                               border: Border.all(
-                                  color: Colors.orange.shade200),
+                                  color: cs.tertiary.withOpacity(0.2)),
                             ),
                             child: Row(
                               children: [
                                 Icon(Icons.warning_amber_rounded,
-                                    color: Colors.orange.shade700),
+                                    color: cs.tertiary),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
@@ -303,14 +420,14 @@ class UserManagementScreen extends ConsumerWidget {
                                       Text('No plan assigned',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.orange.shade800,
+                                            color: cs.tertiary,
                                           )),
                                       Text(
-                                        'This user cannot track meals until a plan is assigned.',
+                                        'Assign a plan below to enable meal tracking.',
                                         style: TextStyle(
                                             fontSize: 13,
-                                            color:
-                                                Colors.orange.shade700),
+                                            color: cs.tertiary
+                                                .withOpacity(0.8)),
                                       ),
                                     ],
                                   ),
@@ -321,15 +438,17 @@ class UserManagementScreen extends ConsumerWidget {
                         }
                         return Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: cs.primaryContainer.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(14),
+                            color: cs.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: cs.primary.withOpacity(0.2)),
                           ),
                           child: Row(
                             children: [
                               Icon(Icons.restaurant_menu,
-                                  color: cs.primary),
+                                  color: cs.primary, size: 20),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -342,7 +461,7 @@ class UserManagementScreen extends ConsumerWidget {
                                           color: cs.primary,
                                         )),
                                     Text(
-                                      '${sub.planFoodType ?? '-'} • ${sub.planMealsPerDay ?? '-'} meals/day • ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}/mo',
+                                      '${sub.planFoodType ?? '-'} · ${sub.planMealsPerDay ?? '-'} meals/day · ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}/mo',
                                       style: TextStyle(
                                           fontSize: 13,
                                           color: cs.onSurfaceVariant),
@@ -357,7 +476,6 @@ class UserManagementScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // Assign plan section
                     Text(
                       subAsync.valueOrNull == null
                           ? 'Assign Plan'
@@ -370,9 +488,9 @@ class UserManagementScreen extends ConsumerWidget {
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Material(
                               color: cs.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(10),
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(10),
                                 onTap: () async {
                                   try {
                                     await assignSubscription(
@@ -404,26 +522,20 @@ class UserManagementScreen extends ConsumerWidget {
                                     }
                                   }
                                 },
-                                child: Padding(
+                                child: Container(
                                   padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: cs.outline),
+                                  ),
                                   child: Row(
                                     children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: cs.primaryContainer
-                                              .withOpacity(0.5),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        child: Icon(
-                                          p.foodType == 'VEG'
-                                              ? Icons.eco_outlined
-                                              : Icons.restaurant_outlined,
-                                          size: 20,
-                                          color: cs.primary,
-                                        ),
+                                      Icon(
+                                        p.foodType == 'VEG'
+                                            ? Icons.eco_outlined
+                                            : Icons.restaurant_outlined,
+                                        size: 20,
+                                        color: cs.primary,
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -436,7 +548,7 @@ class UserManagementScreen extends ConsumerWidget {
                                                     fontWeight:
                                                         FontWeight.w600)),
                                             Text(
-                                              '${p.foodType} • ${p.mealsPerDay} meals/day',
+                                              '${p.foodType} · ${p.mealsPerDay} meals/day',
                                               style: TextStyle(
                                                   fontSize: 13,
                                                   color:
@@ -454,7 +566,7 @@ class UserManagementScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(width: 8),
                                       Icon(Icons.add_circle_outline,
-                                          color: cs.primary, size: 22),
+                                          color: cs.primary, size: 20),
                                     ],
                                   ),
                                 ),
@@ -463,14 +575,156 @@ class UserManagementScreen extends ConsumerWidget {
                           ))
                     else
                       const Text('No meal plans available'),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+
+                    Text('Add Extra Meal',
+                        style: Theme.of(ctx).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Add a one-off meal outside this user\'s plan.',
+                      style: TextStyle(
+                          fontSize: 13, color: cs.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showAddExtraMeal(context, ref, user);
+                      },
+                      icon: const Icon(Icons.add_task, size: 18),
+                      label: const Text('Add Extra Meal'),
+                    ),
+                      const SizedBox(height: 24),
                   ],
                 ),
-              ),
-            );
-          },
-        );
-      },
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
+  void _showAddExtraMeal(
+      BuildContext context, WidgetRef ref, User user) {
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    String selectedMeal = 'BREAKFAST';
+    final noteCtrl = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.7,
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 8,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx)
+                          .colorScheme
+                          .onSurfaceVariant
+                          .withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Text('Add Extra Meal for ${user.fullName}',
+                    style: Theme.of(ctx).textTheme.titleLarge),
+                const SizedBox(height: 20),
+                ActionChip(
+                  avatar: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(
+                      '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setLocal(() => selectedDate = picked);
+                    }
+                  },
+                ),
+                const SizedBox(height: 14),
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                        value: 'BREAKFAST', label: Text('Breakfast')),
+                    ButtonSegment(value: 'LUNCH', label: Text('Lunch')),
+                    ButtonSegment(value: 'DINNER', label: Text('Dinner')),
+                  ],
+                  selected: {selectedMeal},
+                  onSelectionChanged: (s) =>
+                      setLocal(() => selectedMeal = s.first),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: noteCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Note (optional)',
+                    prefixIcon: Icon(Icons.note_outlined),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () async {
+                    try {
+                      await createExtraMeal(
+                        userId: user.id,
+                        date: selectedDate,
+                        mealType: selectedMeal,
+                        note: noteCtrl.text.trim().isNotEmpty
+                            ? noteCtrl.text.trim()
+                            : null,
+                      );
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                'Extra ${selectedMeal.toLowerCase()} added for ${user.fullName}'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    }
+                  },
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  child: const Text('Add Extra Meal'),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

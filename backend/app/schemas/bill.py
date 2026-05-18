@@ -15,6 +15,7 @@ class BillResponse(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    user_full_name: str | None = None
     month: int
     year: int
     plan_name: str
@@ -25,6 +26,12 @@ class BillResponse(BaseModel):
     deduction_amount: Decimal
     final_amount: Decimal
     generated_at: datetime
+
+
+class BillGenerateUserRequest(BaseModel):
+    user_id: uuid.UUID
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=2024, le=2100)
 
 
 class BillSummary(BaseModel):

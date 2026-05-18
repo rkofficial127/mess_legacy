@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers/bill_provider.dart';
@@ -36,15 +37,15 @@ class _BillScreenState extends ConsumerState<BillScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ActionChip(
-              avatar: Icon(Icons.calendar_today, size: 16, color: cs.primary),
+              avatar: Icon(Icons.calendar_today, size: 14, color: cs.primary),
               label: Text(
                 DateFormat('MMM yyyy').format(DateTime(_year, _month)),
                 style: TextStyle(
-                    fontWeight: FontWeight.w600, color: cs.primary),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: cs.primary),
               ),
               onPressed: _pickMonth,
-              side: BorderSide(color: cs.primary.withOpacity(0.3)),
-              backgroundColor: cs.primaryContainer.withOpacity(0.3),
             ),
           ),
         ],
@@ -55,119 +56,96 @@ class _BillScreenState extends ConsumerState<BillScreen> {
         data: (bill) {
           if (bill == null) {
             return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.receipt_long_outlined,
-                        size: 64,
-                        color: cs.onSurfaceVariant.withOpacity(0.3)),
-                    const SizedBox(height: 16),
-                    Text('No Bill Yet',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Bill for this month has not been generated yet.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: cs.onSurfaceVariant),
-                    ),
-                  ],
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.receipt_long_outlined,
+                      size: 48,
+                      color: cs.onSurfaceVariant.withOpacity(0.3)),
+                  const SizedBox(height: 12),
+                  const Text('No Bill Yet'),
+                  const SizedBox(height: 4),
+                  Text('Bill has not been generated yet.',
+                      style: TextStyle(
+                          color: cs.onSurfaceVariant, fontSize: 13)),
+                ],
               ),
             );
           }
 
+          final saved = bill.planRate - bill.finalAmount;
+
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              // Amount hero card
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [cs.primary, cs.primary.withOpacity(0.85)],
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: cs.primary.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
+              // Amount
+              Center(
                 child: Column(
                   children: [
-                    Text('Final Amount',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 14,
-                        )),
-                    const SizedBox(height: 8),
                     Text(
                       '₹${bill.finalAmount.toStringAsFixed(0)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 40,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -1,
-                      ),
+                      style: GoogleFonts.inter(
+                          fontSize: 40, fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      bill.planName,
+                      DateFormat('MMMM yyyy')
+                          .format(DateTime(_year, _month)),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 14,
-                      ),
+                          color: cs.onSurfaceVariant, fontSize: 14),
                     ),
+                    if (saved > 0) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'You saved ₹${saved.toStringAsFixed(0)}',
+                          style: TextStyle(
+                              color: cs.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
               // Breakdown
+              Text('Breakdown',
+                  style: GoogleFonts.inter(
+                      fontSize: 15, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: cs.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(20),
-                  border:
-                      Border.all(color: cs.outlineVariant.withOpacity(0.5)),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: cs.outline),
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Breakdown',
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 16),
-                    _BillRow(
-                        'Plan Rate', '₹${bill.planRate.toStringAsFixed(0)}'),
-                    _BillRow('Total Billable Meals', '${bill.totalMeals}'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Divider(),
-                    ),
-                    _BillRow('Meals Skipped', '${bill.skippedMeals}',
-                        iconColor: Colors.amber.shade700,
-                        icon: Icons.close_rounded),
-                    _BillRow('Mess-Off Meals', '${bill.messOffMeals}',
-                        iconColor: Colors.grey, icon: Icons.event_busy),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Divider(),
-                    ),
-                    _BillRow(
-                      'Deduction',
-                      '-₹${bill.deductionAmount.toStringAsFixed(0)}',
-                      valueColor: cs.error,
-                    ),
+                    _Row('Base Rate',
+                        '₹${bill.planRate.toStringAsFixed(0)}'),
+                    _Row('Total Meals', '${bill.totalMeals}'),
+                    _Row('Skipped', '-${bill.skippedMeals}',
+                        valueColor: cs.error),
+                    _Row('Mess Off', '-${bill.messOffMeals}',
+                        valueColor: cs.onSurfaceVariant),
+                    const Divider(height: 20),
+                    _Row('Deduction',
+                        '-₹${bill.deductionAmount.toStringAsFixed(0)}',
+                        valueColor: cs.error),
                     const SizedBox(height: 4),
-                    _BillRow(
-                      'Final Amount',
+                    _Row(
+                      'Total Due',
                       '₹${bill.finalAmount.toStringAsFixed(0)}',
                       bold: true,
                       valueColor: cs.primary,
@@ -199,40 +177,31 @@ class _BillScreenState extends ConsumerState<BillScreen> {
   }
 }
 
-class _BillRow extends StatelessWidget {
+class _Row extends StatelessWidget {
   final String label;
   final String value;
   final bool bold;
   final Color? valueColor;
-  final IconData? icon;
-  final Color? iconColor;
-
-  const _BillRow(this.label, this.value,
-      {this.bold = false, this.valueColor, this.icon, this.iconColor});
+  const _Row(this.label, this.value, {this.bold = false, this.valueColor});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: iconColor),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: Text(label,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          Text(label,
+              style: TextStyle(
+                  color: cs.onSurfaceVariant,
                   fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
-                )),
-          ),
+                  fontSize: 14)),
           Text(value,
               style: TextStyle(
-                fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-                fontSize: bold ? 18 : 15,
-                color: valueColor,
-              )),
+                  fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: bold ? 16 : 14,
+                  color: valueColor ?? cs.onSurface)),
         ],
       ),
     );

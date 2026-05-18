@@ -38,60 +38,30 @@ class _BillsManagementScreenState
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ActionChip(
-              avatar: Icon(Icons.calendar_today, size: 16, color: cs.primary),
+              avatar: Icon(Icons.calendar_today, size: 14, color: cs.primary),
               label: Text(
                 DateFormat('MMM yyyy').format(DateTime(_year, _month)),
-                style:
-                    TextStyle(fontWeight: FontWeight.w600, color: cs.primary),
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: cs.primary),
               ),
               onPressed: _pickMonth,
-              side: BorderSide(color: cs.primary.withOpacity(0.3)),
-              backgroundColor: cs.primaryContainer.withOpacity(0.3),
             ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _generateBills,
-        icon: const Icon(Icons.calculate_outlined),
-        label: const Text('Generate Bills'),
+        onPressed: _generateAllBills,
+        icon: const Icon(Icons.calculate_outlined, size: 20),
+        label: const Text('Generate All'),
       ),
       body: billsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.receipt_long_outlined,
-                  size: 64, color: cs.onSurfaceVariant.withOpacity(0.3)),
-              const SizedBox(height: 16),
-              Text(
-                'No bills for ${DateFormat('MMM yyyy').format(DateTime(_year, _month))}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text('Tap "Generate Bills" to create them',
-                  style: TextStyle(color: cs.onSurfaceVariant)),
-            ],
-          ),
-        ),
+        error: (e, _) => _EmptyBillsView(cs: cs, month: _month, year: _year),
         data: (bills) {
           if (bills.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.receipt_long_outlined,
-                      size: 64, color: cs.onSurfaceVariant.withOpacity(0.3)),
-                  const SizedBox(height: 16),
-                  Text('No Bills Yet',
-                      style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 8),
-                  Text('Tap "Generate Bills" to create them',
-                      style: TextStyle(color: cs.onSurfaceVariant)),
-                ],
-              ),
-            );
+            return _EmptyBillsView(cs: cs, month: _month, year: _year);
           }
 
           final totalRevenue =
@@ -101,38 +71,18 @@ class _BillsManagementScreenState
 
           return Column(
             children: [
-              // Summary header
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [cs.primaryContainer, cs.primaryContainer.withOpacity(0.6)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
+              // Summary row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _Stat('Users', '${bills.length}',
-                        Icons.people_outline),
-                    Container(
-                      width: 1,
-                      height: 36,
-                      color: cs.onPrimaryContainer.withOpacity(0.2),
-                    ),
-                    _Stat('Revenue', '₹${totalRevenue.toStringAsFixed(0)}',
-                        Icons.trending_up),
-                    Container(
-                      width: 1,
-                      height: 36,
-                      color: cs.onPrimaryContainer.withOpacity(0.2),
-                    ),
-                    _Stat(
-                        'Deductions',
-                        '₹${totalDeductions.toStringAsFixed(0)}',
-                        Icons.trending_down),
+                    _SummaryChip('${bills.length}', 'Users'),
+                    const SizedBox(width: 8),
+                    _SummaryChip(
+                        '₹${totalRevenue.toStringAsFixed(0)}', 'Revenue'),
+                    const SizedBox(width: 8),
+                    _SummaryChip(
+                        '₹${totalDeductions.toStringAsFixed(0)}', 'Deducted'),
                   ],
                 ),
               ),
@@ -144,50 +94,77 @@ class _BillsManagementScreenState
                   itemBuilder: (ctx, i) {
                     final b = bills[i];
                     return Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: cs.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: cs.outlineVariant.withOpacity(0.5)),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: cs.outline),
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: cs.primaryContainer.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(10),
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: cs.primary.withOpacity(0.1),
+                            child: Text(
+                              (b.userFullName ?? '?')[0].toUpperCase(),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: cs.primary,
+                                fontSize: 13,
+                              ),
                             ),
-                            child: Icon(Icons.receipt_outlined,
-                                size: 20, color: cs.primary),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(b.planName,
+                                Text(b.userFullName ?? 'Unknown',
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.w600)),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14)),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '${b.skippedMeals} skipped, ${b.messOffMeals} mess-off',
+                                  '${b.planName} · ${b.skippedMeals} skipped, ${b.messOffMeals} off',
                                   style: TextStyle(
-                                      fontSize: 13,
+                                      fontSize: 12,
                                       color: cs.onSurfaceVariant),
                                 ),
                               ],
                             ),
                           ),
-                          Text(
-                            '₹${b.finalAmount.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 16,
-                              color: cs.primary,
-                            ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '₹${b.finalAmount.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: cs.primary,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => _regenerateForUser(b.userId),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.refresh,
+                                          size: 12, color: cs.secondary),
+                                      const SizedBox(width: 3),
+                                      Text('Regen',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: cs.secondary,
+                                            fontWeight: FontWeight.w600,
+                                          )),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -218,7 +195,7 @@ class _BillsManagementScreenState
     }
   }
 
-  Future<void> _generateBills() async {
+  Future<void> _generateAllBills() async {
     try {
       final bills = await generateBills(_month, _year);
       ref.invalidate(adminBillsProvider((month: _month, year: _year)));
@@ -235,31 +212,86 @@ class _BillsManagementScreenState
       }
     }
   }
+
+  Future<void> _regenerateForUser(String userId) async {
+    try {
+      await generateBillForUser(userId, _month, _year);
+      ref.invalidate(adminBillsProvider((month: _month, year: _year)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bill regenerated')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
 }
 
-class _Stat extends StatelessWidget {
-  final String label;
+class _EmptyBillsView extends StatelessWidget {
+  final ColorScheme cs;
+  final int month;
+  final int year;
+  const _EmptyBillsView(
+      {required this.cs, required this.month, required this.year});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.receipt_long_outlined,
+              size: 48, color: cs.onSurfaceVariant.withOpacity(0.3)),
+          const SizedBox(height: 12),
+          Text(
+            'No bills for ${DateFormat('MMM yyyy').format(DateTime(year, month))}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text('Tap "Generate All" to create them',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
   final String value;
-  final IconData icon;
-  const _Stat(this.label, this.value, this.icon);
+  final String label;
+  const _SummaryChip(this.value, this.label);
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Icon(icon, size: 18, color: cs.onPrimaryContainer),
-        const SizedBox(height: 6),
-        Text(value,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: cs.onPrimaryContainer,
-            )),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11, color: cs.onPrimaryContainer.withOpacity(0.7))),
-      ],
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outline),
+        ),
+        child: Column(
+          children: [
+            Text(value,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w700, fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center),
+            const SizedBox(height: 2),
+            Text(label,
+                style:
+                    TextStyle(fontSize: 10, color: cs.onSurfaceVariant)),
+          ],
+        ),
+      ),
     );
   }
 }

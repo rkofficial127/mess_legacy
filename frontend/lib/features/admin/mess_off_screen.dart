@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -61,10 +62,15 @@ class _MessOffScreenState extends ConsumerState<MessOffScreen> {
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
-              titleTextStyle: Theme.of(context)
-                  .textTheme
-                  .titleMedium!
-                  .copyWith(fontWeight: FontWeight.w600),
+              titleTextStyle: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: cs.onSurface,
+              ),
+              leftChevronIcon:
+                  Icon(Icons.chevron_left, color: cs.onSurfaceVariant),
+              rightChevronIcon:
+                  Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
             ),
             calendarFormat: CalendarFormat.month,
             rowHeight: 44,
@@ -150,7 +156,7 @@ class _MessOffScreenState extends ConsumerState<MessOffScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          const Divider(),
+          Divider(color: cs.outline, height: 1),
           Expanded(
             child: messOffAsync.when(
               loading: () =>
@@ -183,12 +189,13 @@ class _MessOffScreenState extends ConsumerState<MessOffScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: cs.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: cs.outline),
                       ),
                       child: Row(
                         children: [
                           Icon(Icons.event_busy,
-                              size: 20, color: cs.onSurfaceVariant),
+                              size: 18, color: cs.onSurfaceVariant),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Column(

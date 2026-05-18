@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/providers/auth_provider.dart';
 
@@ -14,154 +15,129 @@ class ProfileScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Profile hero header
-          SliverToBoxAdapter(
+      body: ListView(
+        padding: EdgeInsets.only(
+          top: MediaQuery.of(context).padding.top + 24,
+          left: 20,
+          right: 20,
+          bottom: 40,
+        ),
+        children: [
+          // Avatar
+          Center(
             child: Container(
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 24,
-                bottom: 32,
-                left: 24,
-                right: 24,
-              ),
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    cs.primary,
-                    cs.primary.withOpacity(0.85),
-                  ],
-                ),
+                shape: BoxShape.circle,
+                color: cs.surfaceContainerLow,
+                border: Border.all(color: cs.outline, width: 2),
               ),
-              child: Column(
-                children: [
-                  // Header row
-                  Row(
-                    children: [
-                      Text('Profile',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          )),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Avatar
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundColor: Colors.white.withOpacity(0.2),
-                    backgroundImage: user?.avatarUrl != null
-                        ? NetworkImage(user!.avatarUrl!)
-                        : null,
-                    child: user?.avatarUrl == null
-                        ? Text(
-                            user?.fullName.isNotEmpty == true
-                                ? user!.fullName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                                fontSize: 36,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    user?.fullName ?? '-',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (user?.username != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      '@${user!.username}',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 15,
+              child: user?.avatarUrl != null
+                  ? CircleAvatar(
+                      radius: 38,
+                      backgroundImage: NetworkImage(user!.avatarUrl!),
+                    )
+                  : Center(
+                      child: Text(
+                        user?.fullName.isNotEmpty == true
+                            ? user!.fullName[0].toUpperCase()
+                            : '?',
+                        style: GoogleFonts.inter(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: cs.primary,
+                        ),
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 4),
-                  Text(
-                    user?.email ?? '-',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      user?.role ?? '-',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Center(
+            child: Text(
+              user?.fullName ?? '-',
+              style: GoogleFonts.inter(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-
-          // Settings list
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                if (user?.phone != null) ...[
-                  _SettingsTile(
-                    icon: Icons.phone_outlined,
-                    title: 'Phone',
-                    subtitle: user!.phone!,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                if (user?.hasPassword == true)
-                  _SettingsTile(
-                    icon: Icons.lock_outline,
-                    title: 'Change Password',
-                    onTap: () => _showChangePassword(context, ref),
-                  )
-                else
-                  _SettingsTile(
-                    icon: Icons.lock_outline,
-                    title: 'Set Password',
-                    subtitle: 'Add a password to sign in with email',
-                    onTap: () => _showSetPassword(context, ref),
-                  ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () async {
-                      await ref.read(authProvider.notifier).logout();
-                      if (context.mounted) context.go('/login');
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Sign Out'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: cs.error,
-                      side: BorderSide(color: cs.error.withOpacity(0.5)),
-                    ),
+          const SizedBox(height: 2),
+          Center(
+            child: Text(
+              user?.email ?? '-',
+              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
+            ),
+          ),
+          if (user?.role != null) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: cs.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  user!.role,
+                  style: TextStyle(
+                    color: cs.primary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ]),
+              ),
             ),
+          ],
+          const SizedBox(height: 28),
+
+          // Phone
+          if (user?.phone != null) ...[
+            _SettingsGroup(children: [
+              _SettingsRow(
+                icon: Icons.phone_outlined,
+                label: 'Phone',
+                trailing: Text(user!.phone!,
+                    style:
+                        TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+              ),
+            ]),
+            const SizedBox(height: 12),
+          ],
+
+          // Account
+          _SettingsGroup(children: [
+            if (user?.hasPassword == true)
+              _SettingsRow(
+                icon: Icons.lock_outline,
+                label: 'Change Password',
+                onTap: () => _showChangePassword(context, ref),
+              )
+            else
+              _SettingsRow(
+                icon: Icons.lock_outline,
+                label: 'Set Password',
+                subtitle: 'Add a password for email sign-in',
+                onTap: () => _showSetPassword(context, ref),
+              ),
+          ]),
+
+          const SizedBox(height: 24),
+
+          // Sign out
+          OutlinedButton(
+            onPressed: () async {
+              await ref.read(authProvider.notifier).logout();
+              if (context.mounted) context.go('/login');
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: cs.error,
+              side: BorderSide(color: cs.error.withOpacity(0.3)),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            child: const Text('Sign Out',
+                style: TextStyle(fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -275,16 +251,46 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _SettingsTile extends StatelessWidget {
+class _SettingsGroup extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.outline),
+      ),
+      child: Column(
+        children: children.asMap().entries.map((entry) {
+          final isLast = entry.key == children.length - 1;
+          return Column(
+            children: [
+              entry.value,
+              if (!isLast) Divider(height: 1, indent: 52, color: cs.outline),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
   final IconData icon;
-  final String title;
+  final String label;
   final String? subtitle;
+  final Widget? trailing;
   final VoidCallback? onTap;
 
-  const _SettingsTile({
+  const _SettingsRow({
     required this.icon,
-    required this.title,
+    required this.label,
     this.subtitle,
+    this.trailing,
     this.onTap,
   });
 
@@ -292,40 +298,34 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Material(
-      color: cs.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: cs.primaryContainer.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 20, color: cs.primary),
-              ),
+              Icon(icon, size: 18, color: cs.onSurfaceVariant),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        style: const TextStyle(fontWeight: FontWeight.w500)),
+                    Text(label,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w500, fontSize: 14)),
                     if (subtitle != null)
                       Text(subtitle!,
                           style: TextStyle(
-                              fontSize: 13, color: cs.onSurfaceVariant)),
+                              fontSize: 12, color: cs.onSurfaceVariant)),
                   ],
                 ),
               ),
-              if (onTap != null)
-                Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+              if (trailing != null) trailing!,
+              if (onTap != null && trailing == null)
+                Icon(Icons.chevron_right,
+                    size: 18, color: cs.onSurfaceVariant),
             ],
           ),
         ),
