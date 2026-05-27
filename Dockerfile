@@ -5,7 +5,7 @@ WORKDIR /app/frontend
 COPY frontend/ .
 
 RUN flutter pub get
-RUN flutter build web --release --dart-define=API_BASE_URL=
+RUN flutter build web --release
 
 # Stage 2: Python backend
 FROM python:3.12-slim

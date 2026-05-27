@@ -1,6 +1,6 @@
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:8000',
+  defaultValue: 'https://mess-api-production.up.railway.app',
 );
 
 const Map<String, String> mealEmoji = {
