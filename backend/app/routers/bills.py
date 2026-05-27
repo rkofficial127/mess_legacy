@@ -167,6 +167,37 @@ async def bill_summary(
     )
 
 
+@router.get("/me/export")
+async def export_my_pdf(
+    db: DbSession,
+    current_user: CurrentUser,
+    month: int = Query(ge=1, le=12),
+    year: int = Query(ge=2024, le=2100),
+):
+    result = await db.execute(
+        select(MonthlyBill)
+        .where(
+            MonthlyBill.user_id == current_user.id,
+            MonthlyBill.month == month,
+            MonthlyBill.year == year,
+        )
+        .order_by(MonthlyBill.generated_at.desc())
+        .limit(1)
+    )
+    bill = result.scalar_one_or_none()
+    if bill is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Bill not found for this month"
+        )
+    pdf_bytes = generate_bill_pdf(bill, current_user.full_name)
+    filename = f"bill_{current_user.full_name.replace(' ', '_')}_{bill.month:02d}_{bill.year}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/{bill_id}/export")
 async def export_pdf(bill_id: uuid.UUID, db: DbSession, _: CurrentAdmin):
     bill = await db.get(MonthlyBill, bill_id)

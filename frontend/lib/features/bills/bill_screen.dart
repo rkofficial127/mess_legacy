@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../app/decorations.dart';
 import '../../core/providers/bill_provider.dart';
+import '../../core/utils/pdf_download.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/shimmer_loading.dart';
@@ -73,6 +74,32 @@ class _BillScreenState extends ConsumerState<BillScreen> {
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    try {
+                      await downloadMyBillPdf(
+                        month: _month,
+                        year: _year,
+                        filename:
+                            'bill_${DateFormat('MMM_yyyy').format(DateTime(_year, _month))}.pdf',
+                      );
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error downloading: $e')),
+                        );
+                      }
+                    }
+                  },
+                  icon: Icon(Icons.picture_as_pdf_outlined,
+                      size: 18, color: cs.primary),
+                  label: Text('Download PDF',
+                      style: TextStyle(color: cs.primary, fontSize: 13)),
+                ),
+              ),
+              const SizedBox(height: 4),
               // Animated amount
               Center(
                 child: Column(

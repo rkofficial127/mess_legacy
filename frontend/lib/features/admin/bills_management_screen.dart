@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers/admin_providers.dart';
+import '../../core/utils/pdf_download.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 
 class BillsManagementScreen extends ConsumerStatefulWidget {
@@ -449,16 +450,37 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(
-                              'Base ₹${b.planRate.toStringAsFixed(0)} · Deduction ₹${b.deductionAmount.toStringAsFixed(0)}${b.extraMealsAmount > 0 ? ' · Extra ₹${b.extraMealsAmount.toStringAsFixed(0)}' : ''}',
-                              style: TextStyle(
-                                  fontSize: 11, color: cs.onSurfaceVariant),
+                            Expanded(
+                              child: Text(
+                                'Base ₹${b.planRate.toStringAsFixed(0)} · Deduction ₹${b.deductionAmount.toStringAsFixed(0)}${b.extraMealsAmount > 0 ? ' · Extra ₹${b.extraMealsAmount.toStringAsFixed(0)}' : ''}',
+                                style: TextStyle(
+                                    fontSize: 11, color: cs.onSurfaceVariant),
+                              ),
                             ),
-                            const Spacer(),
                             Text(
                               DateFormat('dd MMM, HH:mm').format(b.generatedAt),
                               style: TextStyle(
                                   fontSize: 10, color: cs.onSurfaceVariant),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () async {
+                                try {
+                                  await downloadBillPdf(
+                                    billId: b.id,
+                                    filename:
+                                        'bill_${widget.userName.replaceAll(' ', '_')}_${DateFormat('MMM_yyyy').format(DateTime(b.year, b.month))}.pdf',
+                                  );
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Error: $e')),
+                                    );
+                                  }
+                                }
+                              },
+                              child: Icon(Icons.picture_as_pdf_outlined,
+                                  size: 16, color: cs.primary),
                             ),
                           ],
                         ),
