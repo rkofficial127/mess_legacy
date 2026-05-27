@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/providers/admin_providers.dart';
 import '../../core/providers/meal_skip_provider.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 
 class MessOffScreen extends ConsumerStatefulWidget {
   const MessOffScreen({super.key});
@@ -62,7 +62,7 @@ class _MessOffScreenState extends ConsumerState<MessOffScreen> {
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
-              titleTextStyle: GoogleFonts.inter(
+              titleTextStyle: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: cs.onSurface,
@@ -159,8 +159,10 @@ class _MessOffScreenState extends ConsumerState<MessOffScreen> {
           Divider(color: cs.outline, height: 1),
           Expanded(
             child: messOffAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: ShimmerCardList(count: 4),
+              ),
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (entries) {
                 if (entries.isEmpty) {

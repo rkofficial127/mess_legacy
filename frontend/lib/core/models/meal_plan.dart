@@ -4,6 +4,7 @@ class MealPlan {
   final String foodType;
   final int mealsPerDay;
   final double monthlyRate;
+  final double extraMealRate;
   final bool isActive;
 
   const MealPlan({
@@ -12,6 +13,7 @@ class MealPlan {
     required this.foodType,
     required this.mealsPerDay,
     required this.monthlyRate,
+    this.extraMealRate = 0,
     required this.isActive,
   });
 
@@ -21,6 +23,8 @@ class MealPlan {
         foodType: json['food_type'] as String,
         mealsPerDay: json['meals_per_day'] as int,
         monthlyRate: double.parse(json['monthly_rate'].toString()),
+        extraMealRate:
+            double.parse((json['extra_meal_rate'] ?? '0').toString()),
         isActive: json['is_active'] as bool,
       );
 }

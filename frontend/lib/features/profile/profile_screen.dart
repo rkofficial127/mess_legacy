@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/providers/auth_provider.dart';
 
@@ -13,6 +13,7 @@ class ProfileScreen extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final user = auth.user;
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
     return Scaffold(
       body: ListView(
@@ -23,54 +24,54 @@ class ProfileScreen extends ConsumerWidget {
           bottom: 40,
         ),
         children: [
-          // Avatar
+          // Gradient-ringed avatar
           Center(
             child: Container(
-              width: 80,
-              height: 80,
+              width: 84,
+              height: 84,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: cs.surfaceContainerLow,
-                border: Border.all(color: cs.outline, width: 2),
+                gradient: LinearGradient(
+                  colors: [cs.primary, cs.secondary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
-              child: user?.avatarUrl != null
-                  ? CircleAvatar(
-                      radius: 38,
-                      backgroundImage: NetworkImage(user!.avatarUrl!),
-                    )
-                  : Center(
-                      child: Text(
-                        user?.fullName.isNotEmpty == true
-                            ? user!.fullName[0].toUpperCase()
-                            : '?',
-                        style: GoogleFonts.inter(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: cs.primary,
+              child: Padding(
+                padding: const EdgeInsets.all(3),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: cs.surface,
+                  ),
+                  child: user?.avatarUrl != null
+                      ? CircleAvatar(
+                          radius: 38,
+                          backgroundImage: NetworkImage(user!.avatarUrl!),
+                        )
+                      : Center(
+                          child: Text(
+                            user?.fullName.isNotEmpty == true
+                                ? user!.fullName[0].toUpperCase()
+                                : '?',
+                            style: tt.headlineMedium
+                                ?.copyWith(color: cs.primary),
+                          ),
                         ),
-                      ),
-                    ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 14),
           Center(
-            child: Text(
-              user?.fullName ?? '-',
-              style: GoogleFonts.inter(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            child: Text(user?.fullName ?? '-', style: tt.titleLarge),
           ),
           const SizedBox(height: 2),
           Center(
-            child: Text(
-              user?.email ?? '-',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
-            ),
+            child: Text(user?.email ?? '-', style: tt.bodySmall),
           ),
           if (user?.role != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Center(
               child: Container(
                 padding:
@@ -90,21 +91,29 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ),
           ],
+          // Member since
+          if (user != null) ...[
+            const SizedBox(height: 6),
+            Center(
+              child: Text(
+                'Member since ${DateFormat('MMMM yyyy').format(user.createdAt)}',
+                style: tt.labelSmall,
+              ),
+            ),
+          ],
           const SizedBox(height: 28),
 
           // Phone
-          if (user?.phone != null) ...[
-            _SettingsGroup(children: [
-              _SettingsRow(
-                icon: Icons.phone_outlined,
-                label: 'Phone',
-                trailing: Text(user!.phone!,
-                    style:
-                        TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
-              ),
-            ]),
-            const SizedBox(height: 12),
-          ],
+          _SettingsGroup(children: [
+            _SettingsRow(
+              icon: Icons.phone_outlined,
+              label: 'Phone',
+              trailing: Text(user?.phone ?? '',
+                  style: tt.bodyMedium
+                      ?.copyWith(color: cs.onSurfaceVariant)),
+            ),
+          ]),
+          const SizedBox(height: 12),
 
           // Account
           _SettingsGroup(children: [
@@ -122,23 +131,21 @@ class ProfileScreen extends ConsumerWidget {
                 onTap: () => _showSetPassword(context, ref),
               ),
           ]),
+          const SizedBox(height: 12),
 
-          const SizedBox(height: 24),
-
-          // Sign out
-          OutlinedButton(
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: cs.error,
-              side: BorderSide(color: cs.error.withOpacity(0.3)),
-              minimumSize: const Size(double.infinity, 48),
+          // Sign out in settings group
+          _SettingsGroup(children: [
+            _SettingsRow(
+              icon: Icons.logout,
+              iconColor: cs.error,
+              label: 'Sign Out',
+              labelColor: cs.error,
+              onTap: () async {
+                await ref.read(authProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              },
             ),
-            child: const Text('Sign Out',
-                style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
+          ]),
         ],
       ),
     );
@@ -281,14 +288,18 @@ class _SettingsGroup extends StatelessWidget {
 
 class _SettingsRow extends StatelessWidget {
   final IconData icon;
+  final Color? iconColor;
   final String label;
+  final Color? labelColor;
   final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
 
   const _SettingsRow({
     required this.icon,
+    this.iconColor,
     required this.label,
+    this.labelColor,
     this.subtitle,
     this.trailing,
     this.onTap,
@@ -297,6 +308,7 @@ class _SettingsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -306,19 +318,17 @@ class _SettingsRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: cs.onSurfaceVariant),
+              Icon(icon, size: 18, color: iconColor ?? cs.onSurfaceVariant),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 14)),
+                        style: tt.titleSmall?.copyWith(
+                            color: labelColor)),
                     if (subtitle != null)
-                      Text(subtitle!,
-                          style: TextStyle(
-                              fontSize: 12, color: cs.onSurfaceVariant)),
+                      Text(subtitle!, style: tt.bodySmall),
                   ],
                 ),
               ),

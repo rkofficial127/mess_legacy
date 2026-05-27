@@ -48,6 +48,12 @@ class AppTheme {
       titleLarge: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 22, color: _textPrimary),
       titleMedium: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 16, color: _textPrimary),
       titleSmall: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14, color: _textPrimary),
+      bodyLarge: GoogleFonts.inter(fontWeight: FontWeight.w400, fontSize: 16, color: _textPrimary),
+      bodyMedium: GoogleFonts.inter(fontWeight: FontWeight.w400, fontSize: 14, color: _textPrimary),
+      bodySmall: GoogleFonts.inter(fontWeight: FontWeight.w400, fontSize: 12, color: _textSecondary),
+      labelLarge: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14, color: _textPrimary),
+      labelMedium: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 12, color: _textSecondary),
+      labelSmall: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 10, color: _textSecondary),
     );
 
     return ThemeData(

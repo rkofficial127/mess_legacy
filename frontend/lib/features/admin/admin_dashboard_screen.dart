@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-
 import '../../core/providers/admin_providers.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
@@ -11,6 +9,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final usersAsync = ref.watch(usersProvider);
     final plansAsync = ref.watch(plansProvider);
     final now = DateTime.now();
@@ -37,9 +36,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('Admin',
-                      style: GoogleFonts.inter(
-                          fontSize: 24, fontWeight: FontWeight.w700)),
+                  child: Text('Admin', style: tt.headlineSmall),
                 ),
                 IconButton(
                   icon: Icon(Icons.refresh, color: cs.onSurfaceVariant),
@@ -105,9 +102,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             const SizedBox(height: 28),
 
             // Meal Plans
-            Text('Meal Plans',
-                style: GoogleFonts.inter(
-                    fontSize: 15, fontWeight: FontWeight.w600)),
+            Text('Meal Plans', style: tt.titleSmall),
             const SizedBox(height: 12),
             if (plansAsync.hasValue)
               ...plansAsync.value!.map((p) => Container(
@@ -137,7 +132,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                                       fontWeight: FontWeight.w600)),
                               const SizedBox(height: 2),
                               Text(
-                                '${p.foodType} · ${p.mealsPerDay} meals/day',
+                                '${p.foodType} · ${p.mealsPerDay} meals/day${p.extraMealRate > 0 ? ' · Extra ₹${p.extraMealRate.toStringAsFixed(0)}' : ''}',
                                 style: TextStyle(
                                     fontSize: 13,
                                     color: cs.onSurfaceVariant),

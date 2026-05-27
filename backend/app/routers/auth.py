@@ -34,11 +34,11 @@ def _tokens(user_id: str) -> TokenResponse:
 
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
-    user = await authenticate(db, payload.email, payload.password)
+    user = await authenticate(db, payload.login, payload.password)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail="Invalid email/phone or password",
         )
     return _tokens(str(user.id))
 
@@ -60,7 +60,7 @@ async def register(payload: RegisterRequest, db: DbSession) -> TokenResponse:
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="An account with this email already exists",
+            detail="An account with this email or phone already exists",
         ) from None
     await db.refresh(user)
     return _tokens(str(user.id))

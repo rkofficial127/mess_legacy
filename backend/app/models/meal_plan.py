@@ -22,4 +22,7 @@ class MealPlan(Base, TimestampMixin):
     food_type: Mapped[FoodType] = mapped_column(Enum(FoodType, name="food_type"), nullable=False)
     meals_per_day: Mapped[int] = mapped_column(Integer, nullable=False)
     monthly_rate: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    extra_meal_rate: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, server_default="0.00"
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

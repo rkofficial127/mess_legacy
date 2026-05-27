@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/constants.dart';
 import '../../core/providers/meal_skip_provider.dart';
 import '../../core/utils/meal_cutoff.dart';
+import '../../shared/widgets/meal_status_card.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -17,13 +18,21 @@ class CalendarScreen extends ConsumerStatefulWidget {
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  late DateTime _selectedDay;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDay = DateTime(now.year, now.month, now.day);
+  }
 
   @override
   Widget build(BuildContext context) {
     final month = _focusedDay.month;
     final year = _focusedDay.year;
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
 
     final subAsync = ref.watch(subscriptionProvider);
     final skipsAsync =
@@ -95,15 +104,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 headerStyle: HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: cs.onSurface,
-                  ),
+                  titleTextStyle: tt.titleMedium!,
                   leftChevronIcon:
                       Icon(Icons.chevron_left, color: cs.onSurfaceVariant),
                   rightChevronIcon:
                       Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+                  headerPadding: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    border: Border(
+                        bottom: BorderSide(
+                            color: cs.outline.withOpacity(0.5))),
+                  ),
                 ),
                 daysOfWeekStyle: DaysOfWeekStyle(
                   weekdayStyle: TextStyle(
@@ -116,14 +127,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       fontWeight: FontWeight.w600),
                 ),
                 calendarFormat: CalendarFormat.month,
-                rowHeight: 48,
+                rowHeight: 42,
               );
             },
           ),
 
-          // Legend
+          // Compact legend row
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -138,31 +149,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
           Divider(color: cs.outline, height: 1),
 
-          if (_selectedDay != null)
-            Expanded(
-              child: _DayDetail(
-                day: _selectedDay!,
-                month: month,
-                year: year,
-                mealsPerDay: subAsync.valueOrNull?.planMealsPerDay ?? 0,
-                hasSubscription: subAsync.valueOrNull != null,
-              ),
-            )
-          else
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.touch_app_outlined,
-                        size: 48, color: cs.onSurfaceVariant.withOpacity(0.3)),
-                    const SizedBox(height: 12),
-                    Text('Tap a day to see details',
-                        style: TextStyle(color: cs.onSurfaceVariant)),
-                  ],
-                ),
-              ),
+          Expanded(
+            child: _DayDetail(
+              day: _selectedDay,
+              month: month,
+              year: year,
+              mealsPerDay: subAsync.valueOrNull?.planMealsPerDay ?? 0,
+              hasSubscription: subAsync.valueOrNull != null,
             ),
+          ),
         ],
       ),
     );
@@ -185,10 +180,7 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
       ],
     );
   }
@@ -277,6 +269,7 @@ class _DayDetail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final skipsAsync =
         ref.watch(monthSkipsProvider((month: month, year: year)));
     final messOffAsync =
@@ -308,15 +301,14 @@ class _DayDetail extends ConsumerWidget {
     final isToday = isSameDay(day, DateTime.now());
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         Row(
           children: [
             Expanded(
               child: Text(
                 DateFormat('EEEE, d MMMM').format(day),
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600, fontSize: 15),
+                style: tt.titleMedium,
               ),
             ),
             if (isToday)
@@ -351,7 +343,7 @@ class _DayDetail extends ConsumerWidget {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         if (!hasSubscription) ...[
           Container(
@@ -421,6 +413,7 @@ class _DayDetail extends ConsumerWidget {
             ),
           ),
         ] else ...[
+          // Shared MealStatusCard for each meal
           ...mealsForDay.map((meal) {
             final isMealMessOff = dayMessOffs
                 .any((m) => m.mealType == meal || m.mealType == 'ALL');
@@ -429,92 +422,19 @@ class _DayDetail extends ConsumerWidget {
             final isSkipped = skip != null;
             final frozen = isMealCutoffPassed(meal, day);
 
-            Color accentColor;
-            String statusText;
-
-            if (isMealMessOff) {
-              accentColor = cs.onSurfaceVariant;
-              statusText = 'Mess Off';
-            } else if (isSkipped) {
-              accentColor = cs.error;
-              statusText = frozen ? 'Skipped (Locked)' : 'Skipped';
-            } else if (frozen) {
-              accentColor = cs.onSurfaceVariant;
-              statusText = 'Taking (Locked)';
-            } else {
-              accentColor = cs.primary;
-              statusText = 'Taking';
-            }
-
-            final mealIcons = {
-              'BREAKFAST': Icons.wb_twilight_rounded,
-              'LUNCH': Icons.wb_sunny_rounded,
-              'DINNER': Icons.nightlight_round,
-            };
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: cs.outline),
-              ),
-              child: Row(
-                children: [
-                  Icon(mealIcons[meal] ?? Icons.restaurant,
-                      size: 20, color: accentColor),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(mealLabel[meal] ?? meal,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
-                        Text(statusText,
-                            style: TextStyle(
-                                color: accentColor,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                  if (!isMealMessOff && !frozen)
-                    TextButton(
-                      onPressed: () async {
-                        try {
-                          if (isSkipped) {
-                            await cancelSkip(skip.id);
-                          } else {
-                            await createSkip(day, meal);
-                          }
-                          ref.invalidate(monthSkipsProvider(
-                              (month: month, year: year)));
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
-                            );
-                          }
-                        }
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor:
-                            isSkipped ? cs.primary : cs.error,
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 16),
-                        minimumSize: const Size(0, 36),
-                      ),
-                      child: Text(isSkipped ? 'Undo' : 'Skip',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600)),
-                    ),
-                  if (frozen && !isMealMessOff)
-                    Icon(Icons.lock_outline,
-                        size: 16, color: cs.onSurfaceVariant),
-                ],
-              ),
+            return MealStatusCard(
+              mealType: meal,
+              isSkipped: isSkipped,
+              isMessOff: isMealMessOff,
+              isFrozen: frozen,
+              skipId: skip?.id,
+              date: day,
+              onSkip: (date, mealType) => createSkip(date, mealType),
+              onUndo: (skipId) => cancelSkip(skipId),
+              onChanged: () {
+                ref.invalidate(
+                    monthSkipsProvider((month: month, year: year)));
+              },
             );
           }),
 
@@ -540,9 +460,7 @@ class _DayDetail extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(m.reason!,
-                              style: TextStyle(
-                                  fontSize: 13,
-                                  color: cs.onSurfaceVariant),
+                              style: tt.bodySmall,
                               overflow: TextOverflow.ellipsis),
                         ),
                       ],
@@ -551,33 +469,32 @@ class _DayDetail extends ConsumerWidget {
                 )),
         ],
 
-        // Skip all button
+        // Skip all — only show when actionable
         if (!isFullDayOff && mealsForDay.length > 1) ...[
           Builder(builder: (ctx) {
             final allSkipped = mealsForDay.every(
                 (m) => daySkips.any((s) => s.mealType == m));
-            final anyFrozen = mealsForDay.any((m) =>
-                isMealCutoffPassed(m, day) &&
-                !daySkips.any((s) => s.mealType == m));
-            if (allSkipped) return const SizedBox.shrink();
+            final allFrozenOrSkipped = mealsForDay.every((m) =>
+                isMealCutoffPassed(m, day) ||
+                daySkips.any((s) => s.mealType == m));
+            if (allSkipped || allFrozenOrSkipped) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: OutlinedButton.icon(
-                onPressed: anyFrozen
-                    ? null
-                    : () async {
-                        try {
-                          await bulkSkipDay(day);
-                          ref.invalidate(monthSkipsProvider(
-                              (month: month, year: year)));
-                        } catch (e) {
-                          if (ctx.mounted) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
-                            );
-                          }
-                        }
-                      },
+                onPressed: () async {
+                  HapticFeedback.mediumImpact();
+                  try {
+                    await bulkSkipDay(day);
+                    ref.invalidate(
+                        monthSkipsProvider((month: month, year: year)));
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text(e.toString())),
+                      );
+                    }
+                  }
+                },
                 icon: const Icon(Icons.block, size: 16),
                 label: const Text('Skip All Meals'),
                 style: OutlinedButton.styleFrom(
@@ -600,14 +517,15 @@ class _DayDetail extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                   color: cs.secondary)),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ...dayExtras.map((e) => Container(
-                margin: const EdgeInsets.only(bottom: 6),
+                margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: cs.secondary.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: cs.secondary.withOpacity(0.15)),
+                  border:
+                      Border.all(color: cs.secondary.withOpacity(0.15)),
                 ),
                 child: Row(
                   children: [
@@ -627,9 +545,7 @@ class _DayDetail extends ConsumerWidget {
                           ),
                           if (e.note != null)
                             Text(e.note!,
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: cs.onSurfaceVariant)),
+                                style: tt.labelSmall),
                         ],
                       ),
                     ),
@@ -646,15 +562,14 @@ class _DayDetail extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: cs.secondary.withOpacity(0.06),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: cs.secondary.withOpacity(0.15)),
+                border:
+                    Border.all(color: cs.secondary.withOpacity(0.15)),
               ),
               child: Row(
                 children: [
                   Icon(Icons.info_outline, size: 16, color: cs.secondary),
                   const SizedBox(width: 8),
-                  Text('Only lunch on Sundays',
-                      style: TextStyle(
-                          fontSize: 13, color: cs.onSurfaceVariant)),
+                  Text('Only lunch on Sundays', style: tt.bodySmall),
                 ],
               ),
             ),

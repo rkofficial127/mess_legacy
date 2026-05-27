@@ -52,6 +52,7 @@ async def seed_admin(session) -> None:
         email=admin_email,
         password_hash=hash_password(password),
         full_name="Mess Administrator",
+        phone="0000000000",
         role=UserRole.ADMIN,
         is_active=True,
     )

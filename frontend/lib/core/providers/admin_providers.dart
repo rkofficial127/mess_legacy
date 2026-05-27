@@ -104,18 +104,31 @@ final userSubscriptionProvider = FutureProvider.autoDispose
   }
 });
 
+final userBillsProvider = FutureProvider.autoDispose
+    .family<List<Bill>, ({String userId, int? month, int? year})>(
+        (ref, args) async {
+  final params = <String, dynamic>{};
+  if (args.month != null) params['month'] = args.month;
+  if (args.year != null) params['year'] = args.year;
+  final res = await ApiClient.dio.get(
+    '/api/bills/user/${args.userId}',
+    queryParameters: params,
+  );
+  return (res.data as List).map((j) => Bill.fromJson(j)).toList();
+});
+
 Future<User> createUser({
   required String email,
   required String fullName,
   required String password,
-  String? phone,
+  required String phone,
   String role = 'USER',
 }) async {
   final res = await ApiClient.dio.post('/api/users', data: {
     'email': email,
     'full_name': fullName,
     'password': password,
-    if (phone != null) 'phone': phone,
+    'phone': phone,
     'role': role,
   });
   return User.fromJson(res.data);

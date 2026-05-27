@@ -2,7 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    login: str = Field(min_length=1, max_length=255)
     password: str = Field(min_length=1, max_length=128)
 
 
@@ -31,6 +31,6 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     full_name: str = Field(min_length=1, max_length=100)
     username: str | None = Field(default=None, max_length=50)
-    phone: str | None = Field(default=None, max_length=15)
+    phone: str = Field(min_length=10, max_length=15)
 
 

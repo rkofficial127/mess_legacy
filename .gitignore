@@ -16,3 +16,5 @@ frontend/.flutter-plugins-dependencies
 
 # Backend static (built by CI/Docker)
 backend/static/
+builds/
+builds/

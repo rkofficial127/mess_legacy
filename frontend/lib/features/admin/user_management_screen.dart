@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/models/user.dart';
 import '../../core/providers/admin_providers.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 
 class UserManagementScreen extends ConsumerWidget {
   const UserManagementScreen({super.key});
@@ -21,7 +22,10 @@ class UserManagementScreen extends ConsumerWidget {
         label: const Text('Add User'),
       ),
       body: usersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.only(top: 24),
+          child: ShimmerCardList(count: 5),
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (users) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(usersProvider),
@@ -184,11 +188,6 @@ class UserManagementScreen extends ConsumerWidget {
 
   void _showUserDetail(
       BuildContext context, WidgetRef ref, User user, List? plans) {
-    final cs = Theme.of(context).colorScheme;
-    final now = DateTime.now();
-    final nameCtrl = TextEditingController(text: user.fullName);
-    final phoneCtrl = TextEditingController(text: user.phone ?? '');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -199,532 +198,15 @@ class UserManagementScreen extends ConsumerWidget {
           maxChildSize: 0.95,
           minChildSize: 0.4,
           builder: (ctx, scrollController) {
-            return Consumer(
-              builder: (ctx, ref, _) {
-                final subAsync = ref.watch(userSubscriptionProvider(
-                    (userId: user.id, month: now.month, year: now.year)));
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ListView(
-                    controller: scrollController,
-                    children: [
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: cs.onSurfaceVariant.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: cs.primary.withOpacity(0.1),
-                          child: Text(
-                            user.fullName.isNotEmpty
-                                ? user.fullName[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: cs.primary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(user.fullName,
-                                  style: Theme.of(ctx).textTheme.titleLarge),
-                              Text(user.email,
-                                  style:
-                                      TextStyle(color: cs.onSurfaceVariant)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: user.isActive
-                                ? cs.primary.withOpacity(0.1)
-                                : cs.error.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            user.isActive ? 'Active' : 'Inactive',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: user.isActive ? cs.primary : cs.error,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    Text('Edit Profile',
-                        style: Theme.of(ctx).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: nameCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextFormField(
-                      controller: phoneCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () async {
-                              try {
-                                await updateUser(
-                                  userId: user.id,
-                                  fullName: nameCtrl.text.trim(),
-                                  phone: phoneCtrl.text.trim(),
-                                );
-                                ref.invalidate(usersProvider);
-                                if (ctx.mounted) Navigator.pop(ctx);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text('Profile updated')),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $e')),
-                                  );
-                                }
-                              }
-                            },
-                            icon: const Icon(Icons.save_outlined, size: 18),
-                            label: const Text('Save Changes'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Flexible(
-                          child: OutlinedButton(
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: ctx,
-                                builder: (d) => AlertDialog(
-                                  title: Text(user.isActive
-                                      ? 'Deactivate User?'
-                                      : 'Activate User?'),
-                                  content: Text(user.isActive
-                                      ? '${user.fullName} will no longer be able to log in.'
-                                      : '${user.fullName} will be able to log in again.'),
-                                  actions: [
-                                    TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(d, false),
-                                        child: const Text('Cancel')),
-                                    FilledButton(
-                                        onPressed: () =>
-                                            Navigator.pop(d, true),
-                                        child: Text(user.isActive
-                                            ? 'Deactivate'
-                                            : 'Activate')),
-                                  ],
-                                ),
-                              );
-                              if (confirm != true) return;
-                              try {
-                                await updateUser(
-                                  userId: user.id,
-                                  isActive: !user.isActive,
-                                );
-                                ref.invalidate(usersProvider);
-                                if (ctx.mounted) Navigator.pop(ctx);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text(user.isActive
-                                            ? '${user.fullName} deactivated'
-                                            : '${user.fullName} activated')),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $e')),
-                                  );
-                                }
-                              }
-                            },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor:
-                                  user.isActive ? cs.error : cs.primary,
-                              minimumSize: const Size(0, 52),
-                            ),
-                            child: Text(
-                                user.isActive ? 'Deactivate' : 'Activate'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    Text('Current Plan',
-                        style: Theme.of(ctx).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    subAsync.when(
-                      loading: () => const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                      error: (e, _) => Text('Error: $e'),
-                      data: (sub) {
-                        if (sub == null) {
-                          return Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: cs.tertiary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                  color: cs.tertiary.withOpacity(0.2)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.warning_amber_rounded,
-                                    color: cs.tertiary),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text('No plan assigned',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: cs.tertiary,
-                                          )),
-                                      Text(
-                                        'Assign a plan below to enable meal tracking.',
-                                        style: TextStyle(
-                                            fontSize: 13,
-                                            color: cs.tertiary
-                                                .withOpacity(0.8)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                        return Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: cs.primary.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: cs.primary.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.restaurant_menu,
-                                  color: cs.primary, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(sub.planName ?? 'Plan',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: cs.primary,
-                                        )),
-                                    Text(
-                                      '${sub.planFoodType ?? '-'} · ${sub.planMealsPerDay ?? '-'} meals/day · ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}/mo',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: cs.onSurfaceVariant),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    Text(
-                      subAsync.valueOrNull == null
-                          ? 'Assign Plan'
-                          : 'Change Plan',
-                      style: Theme.of(ctx).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    if (plans != null && plans.isNotEmpty)
-                      ...plans.map((p) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Material(
-                              color: cs.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(10),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(10),
-                                onTap: () async {
-                                  try {
-                                    await assignSubscription(
-                                      userId: user.id,
-                                      planId: p.id,
-                                      month: now.month,
-                                      year: now.year,
-                                    );
-                                    ref.invalidate(
-                                        userSubscriptionProvider((
-                                      userId: user.id,
-                                      month: now.month,
-                                      year: now.year,
-                                    )));
-                                    if (ctx.mounted) Navigator.pop(ctx);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(SnackBar(
-                                        content: Text(
-                                            '${p.name} assigned to ${user.fullName}'),
-                                      ));
-                                    }
-                                  } catch (e) {
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(SnackBar(
-                                        content: Text('Error: $e'),
-                                      ));
-                                    }
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: cs.outline),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        p.foodType == 'VEG'
-                                            ? Icons.eco_outlined
-                                            : Icons.restaurant_outlined,
-                                        size: 20,
-                                        color: cs.primary,
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(p.name,
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.w600)),
-                                            Text(
-                                              '${p.foodType} · ${p.mealsPerDay} meals/day',
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  color:
-                                                      cs.onSurfaceVariant),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        '₹${p.monthlyRate.toStringAsFixed(0)}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: cs.primary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Icon(Icons.add_circle_outline,
-                                          color: cs.primary, size: 20),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ))
-                    else
-                      const Text('No meal plans available'),
-                    const SizedBox(height: 20),
-
-                    Text('Add Extra Meal',
-                        style: Theme.of(ctx).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Add a one-off meal outside this user\'s plan.',
-                      style: TextStyle(
-                          fontSize: 13, color: cs.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 10),
-                    FilledButton.tonalIcon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _showAddExtraMeal(context, ref, user);
-                      },
-                      icon: const Icon(Icons.add_task, size: 18),
-                      label: const Text('Add Extra Meal'),
-                    ),
-                      const SizedBox(height: 24),
-                  ],
-                ),
-              );
-            },
-          );
-        },
-      );
-    },
-  );
-}
-
-  void _showAddExtraMeal(
-      BuildContext context, WidgetRef ref, User user) {
-    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
-    String selectedMeal = 'BREAKFAST';
-    final noteCtrl = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.7,
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-            left: 24,
-            right: 24,
-            top: 8,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(ctx)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Text('Add Extra Meal for ${user.fullName}',
-                    style: Theme.of(ctx).textTheme.titleLarge),
-                const SizedBox(height: 20),
-                ActionChip(
-                  avatar: const Icon(Icons.calendar_today, size: 16),
-                  label: Text(
-                      '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'),
-                  onPressed: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: selectedDate,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setLocal(() => selectedDate = picked);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                        value: 'BREAKFAST', label: Text('Breakfast')),
-                    ButtonSegment(value: 'LUNCH', label: Text('Lunch')),
-                    ButtonSegment(value: 'DINNER', label: Text('Dinner')),
-                  ],
-                  selected: {selectedMeal},
-                  onSelectionChanged: (s) =>
-                      setLocal(() => selectedMeal = s.first),
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: noteCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Note (optional)',
-                    prefixIcon: Icon(Icons.note_outlined),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () async {
-                    try {
-                      await createExtraMeal(
-                        userId: user.id,
-                        date: selectedDate,
-                        mealType: selectedMeal,
-                        note: noteCtrl.text.trim().isNotEmpty
-                            ? noteCtrl.text.trim()
-                            : null,
-                      );
-                      if (ctx.mounted) Navigator.pop(ctx);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                'Extra ${selectedMeal.toLowerCase()} added for ${user.fullName}'),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
-                      }
-                    }
-                  },
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 48),
-                  ),
-                  child: const Text('Add Extra Meal'),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ),
-      ),
+            return _UserDetailSheet(
+              user: user,
+              plans: plans,
+              scrollController: scrollController,
+              parentContext: context,
+            );
+          },
+        );
+      },
     );
   }
 
@@ -795,10 +277,13 @@ class UserManagementScreen extends ConsumerWidget {
                 TextFormField(
                   controller: phoneCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Phone (optional)',
+                    labelText: 'Phone',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   keyboardType: TextInputType.phone,
+                  validator: (v) => v == null || v.trim().length < 10
+                      ? 'Enter a valid phone number'
+                      : null,
                 ),
                 if (plans != null && plans.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -828,9 +313,7 @@ class UserManagementScreen extends ConsumerWidget {
                         email: emailCtrl.text.trim(),
                         fullName: nameCtrl.text.trim(),
                         password: passCtrl.text,
-                        phone: phoneCtrl.text.isNotEmpty
-                            ? phoneCtrl.text.trim()
-                            : null,
+                        phone: phoneCtrl.text.trim(),
                       );
                       if (selectedPlanId != null) {
                         await assignSubscription(
@@ -863,6 +346,540 @@ class UserManagementScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _UserDetailSheet extends ConsumerStatefulWidget {
+  final User user;
+  final List? plans;
+  final ScrollController scrollController;
+  final BuildContext parentContext;
+
+  const _UserDetailSheet({
+    required this.user,
+    required this.plans,
+    required this.scrollController,
+    required this.parentContext,
+  });
+
+  @override
+  ConsumerState<_UserDetailSheet> createState() => _UserDetailSheetState();
+}
+
+class _UserDetailSheetState extends ConsumerState<_UserDetailSheet>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabCtrl;
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _phoneCtrl;
+
+  DateTime _extraDate = DateTime.now().add(const Duration(days: 1));
+  String _extraMeal = 'BREAKFAST';
+  final _noteCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: 3, vsync: this);
+    _nameCtrl = TextEditingController(text: widget.user.fullName);
+    _phoneCtrl = TextEditingController(text: widget.user.phone);
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final user = widget.user;
+    final now = DateTime.now();
+    final subAsync = ref.watch(userSubscriptionProvider(
+        (userId: user.id, month: now.month, year: now.year)));
+
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        Center(
+          child: Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: cs.onSurfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: cs.primary.withOpacity(0.1),
+                child: Text(
+                  user.fullName.isNotEmpty
+                      ? user.fullName[0].toUpperCase()
+                      : '?',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user.fullName, style: tt.titleLarge),
+                    Text(user.email,
+                        style: TextStyle(color: cs.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: user.isActive
+                      ? cs.primary.withOpacity(0.1)
+                      : cs.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  user.isActive ? 'Active' : 'Inactive',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: user.isActive ? cs.primary : cs.error,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        TabBar(
+          controller: _tabCtrl,
+          tabs: const [
+            Tab(text: 'Profile'),
+            Tab(text: 'Plan'),
+            Tab(text: 'Extras'),
+          ],
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabCtrl,
+            children: [
+              _buildProfileTab(cs, tt, user),
+              _buildPlanTab(cs, tt, user, subAsync),
+              _buildExtrasTab(cs, tt, user),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileTab(ColorScheme cs, TextTheme tt, User user) {
+    return ListView(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.all(24),
+      children: [
+        TextFormField(
+          controller: _nameCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Full Name',
+            prefixIcon: Icon(Icons.person_outline),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextFormField(
+          controller: _phoneCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Phone',
+            prefixIcon: Icon(Icons.phone_outlined),
+          ),
+          keyboardType: TextInputType.phone,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () async {
+                  try {
+                    await updateUser(
+                      userId: user.id,
+                      fullName: _nameCtrl.text.trim(),
+                      phone: _phoneCtrl.text.trim(),
+                    );
+                    ref.invalidate(usersProvider);
+                    if (mounted) Navigator.pop(context);
+                    if (widget.parentContext.mounted) {
+                      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                        const SnackBar(content: Text('Profile updated')),
+                      );
+                    }
+                  } catch (e) {
+                    if (widget.parentContext.mounted) {
+                      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+                icon: const Icon(Icons.save_outlined, size: 18),
+                label: const Text('Save Changes'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: OutlinedButton(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (d) => AlertDialog(
+                      title: Text(user.isActive
+                          ? 'Deactivate User?'
+                          : 'Activate User?'),
+                      content: Text(user.isActive
+                          ? '${user.fullName} will no longer be able to log in.'
+                          : '${user.fullName} will be able to log in again.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => Navigator.pop(d, false),
+                            child: const Text('Cancel')),
+                        FilledButton(
+                            onPressed: () => Navigator.pop(d, true),
+                            child: Text(user.isActive
+                                ? 'Deactivate'
+                                : 'Activate')),
+                      ],
+                    ),
+                  );
+                  if (confirm != true) return;
+                  try {
+                    await updateUser(
+                      userId: user.id,
+                      isActive: !user.isActive,
+                    );
+                    ref.invalidate(usersProvider);
+                    if (mounted) Navigator.pop(context);
+                    if (widget.parentContext.mounted) {
+                      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                        SnackBar(
+                            content: Text(user.isActive
+                                ? '${user.fullName} deactivated'
+                                : '${user.fullName} activated')),
+                      );
+                    }
+                  } catch (e) {
+                    if (widget.parentContext.mounted) {
+                      ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: user.isActive ? cs.error : cs.primary,
+                  minimumSize: const Size(0, 52),
+                ),
+                child:
+                    Text(user.isActive ? 'Deactivate' : 'Activate'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlanTab(
+      ColorScheme cs, TextTheme tt, User user, AsyncValue subAsync) {
+    final now = DateTime.now();
+    final plans = widget.plans;
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text('Current Plan', style: tt.titleMedium),
+        const SizedBox(height: 8),
+        subAsync.when(
+          loading: () => const ShimmerCardList(count: 1, cardHeight: 56),
+          error: (e, _) => Text('Error: $e'),
+          data: (sub) {
+            if (sub == null) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cs.tertiary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                  border:
+                      Border.all(color: cs.tertiary.withOpacity(0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: cs.tertiary),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('No plan assigned',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: cs.tertiary,
+                              )),
+                          Text(
+                            'Assign a plan below.',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: cs.tertiary.withOpacity(0.8)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: cs.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+                border:
+                    Border.all(color: cs.primary.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.restaurant_menu,
+                      color: cs.primary, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(sub.planName ?? 'Plan',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: cs.primary,
+                            )),
+                        Text(
+                          '${sub.planFoodType ?? '-'} · ${sub.planMealsPerDay ?? '-'} meals/day · ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}/mo',
+                          style: TextStyle(
+                              fontSize: 13, color: cs.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 20),
+        Text(
+          subAsync.valueOrNull == null ? 'Assign Plan' : 'Change Plan',
+          style: tt.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        if (plans != null && plans.isNotEmpty)
+          ...plans.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Material(
+                  color: cs.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () async {
+                      try {
+                        await assignSubscription(
+                          userId: user.id,
+                          planId: p.id,
+                          month: now.month,
+                          year: now.year,
+                        );
+                        ref.invalidate(userSubscriptionProvider((
+                          userId: user.id,
+                          month: now.month,
+                          year: now.year,
+                        )));
+                        if (mounted) Navigator.pop(context);
+                        if (widget.parentContext.mounted) {
+                          ScaffoldMessenger.of(widget.parentContext)
+                              .showSnackBar(SnackBar(
+                            content: Text(
+                                '${p.name} assigned to ${user.fullName}'),
+                          ));
+                        }
+                      } catch (e) {
+                        if (widget.parentContext.mounted) {
+                          ScaffoldMessenger.of(widget.parentContext)
+                              .showSnackBar(SnackBar(
+                            content: Text('Error: $e'),
+                          ));
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: cs.outline),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            p.foodType == 'VEG'
+                                ? Icons.eco_outlined
+                                : Icons.restaurant_outlined,
+                            size: 20,
+                            color: cs.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(p.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                  '${p.foodType} · ${p.mealsPerDay} meals/day',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: cs.onSurfaceVariant),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '₹${p.monthlyRate.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: cs.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(Icons.add_circle_outline,
+                              color: cs.primary, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ))
+        else
+          const Text('No meal plans available'),
+      ],
+    );
+  }
+
+  Widget _buildExtrasTab(ColorScheme cs, TextTheme tt, User user) {
+    return StatefulBuilder(
+      builder: (ctx, setLocal) => ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          Text('Add Extra Meal', style: tt.titleMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Add a one-off meal outside this user\'s plan.',
+            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          ActionChip(
+            avatar: const Icon(Icons.calendar_today, size: 16),
+            label: Text(
+                '${_extraDate.day}/${_extraDate.month}/${_extraDate.year}'),
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: ctx,
+                initialDate: _extraDate,
+                firstDate: DateTime.now(),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) {
+                setLocal(() => _extraDate = picked);
+              }
+            },
+          ),
+          const SizedBox(height: 14),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(
+                  value: 'BREAKFAST',
+                  label: Icon(Icons.wb_twilight_rounded, size: 18)),
+              ButtonSegment(
+                  value: 'LUNCH',
+                  label: Icon(Icons.wb_sunny_rounded, size: 18)),
+              ButtonSegment(
+                  value: 'DINNER',
+                  label: Icon(Icons.nightlight_round, size: 18)),
+            ],
+            selected: {_extraMeal},
+            onSelectionChanged: (s) =>
+                setLocal(() => _extraMeal = s.first),
+          ),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _noteCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Note (optional)',
+              prefixIcon: Icon(Icons.note_outlined),
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () async {
+              try {
+                await createExtraMeal(
+                  userId: user.id,
+                  date: _extraDate,
+                  mealType: _extraMeal,
+                  note: _noteCtrl.text.trim().isNotEmpty
+                      ? _noteCtrl.text.trim()
+                      : null,
+                );
+                if (mounted) Navigator.pop(context);
+                if (widget.parentContext.mounted) {
+                  ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          'Extra ${_extraMeal.toLowerCase()} added for ${user.fullName}'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (widget.parentContext.mounted) {
+                  ScaffoldMessenger.of(widget.parentContext).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(double.infinity, 48),
+            ),
+            child: const Text('Add Extra Meal'),
+          ),
+        ],
       ),
     );
   }

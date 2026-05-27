@@ -9,7 +9,7 @@ from app.models.user import UserRole
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=100)
-    phone: str | None = Field(default=None, max_length=15)
+    phone: str = Field(min_length=10, max_length=15)
     role: UserRole = UserRole.USER
 
 
@@ -31,7 +31,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     full_name: str
     username: str | None = None
-    phone: str | None = None
+    phone: str
     avatar_url: str | None = None
     role: UserRole
     is_active: bool

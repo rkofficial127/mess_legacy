@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -67,7 +68,10 @@ class AppScaffold extends ConsumerWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
-        onDestinationSelected: (i) => context.go(paths[i]),
+        onDestinationSelected: (i) {
+          HapticFeedback.mediumImpact();
+          context.go(paths[i]);
+        },
         destinations: destinations,
       ),
     );

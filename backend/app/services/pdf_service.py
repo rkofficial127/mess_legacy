@@ -40,7 +40,9 @@ def generate_bill_pdf(bill: MonthlyBill, user_name: str) -> bytes:
         ["Total Billable Meals", str(bill.total_meals)],
         ["Meals Skipped (by you)", str(bill.skipped_meals)],
         ["Mess-Off Meals", str(bill.mess_off_meals)],
-        ["Deduction", f"₹{bill.deduction_amount:,.2f}"],
+        ["Deduction (skips)", f"- ₹{bill.deduction_amount:,.2f}"],
+        ["Extra Meals", str(bill.extra_meals_count)],
+        ["Extra Meals Charge", f"+ ₹{bill.extra_meals_amount:,.2f}"],
         ["Final Amount", f"₹{bill.final_amount:,.2f}"],
     ]
     bill_table = Table(bill_data, colWidths=[90 * mm, 50 * mm])

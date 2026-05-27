@@ -23,6 +23,8 @@ class BillResponse(BaseModel):
     total_meals: int
     skipped_meals: int
     mess_off_meals: int
+    extra_meals_count: int = 0
+    extra_meals_amount: Decimal = Decimal("0.00")
     deduction_amount: Decimal
     final_amount: Decimal
     generated_at: datetime

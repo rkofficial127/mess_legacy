@@ -9,6 +9,8 @@ class Bill {
   final int totalMeals;
   final int skippedMeals;
   final int messOffMeals;
+  final int extraMealsCount;
+  final double extraMealsAmount;
   final double deductionAmount;
   final double finalAmount;
   final DateTime generatedAt;
@@ -24,6 +26,8 @@ class Bill {
     required this.totalMeals,
     required this.skippedMeals,
     required this.messOffMeals,
+    this.extraMealsCount = 0,
+    this.extraMealsAmount = 0,
     required this.deductionAmount,
     required this.finalAmount,
     required this.generatedAt,
@@ -40,6 +44,9 @@ class Bill {
         totalMeals: json['total_meals'] as int,
         skippedMeals: json['skipped_meals'] as int,
         messOffMeals: json['mess_off_meals'] as int,
+        extraMealsCount: (json['extra_meals_count'] as int?) ?? 0,
+        extraMealsAmount:
+            double.parse((json['extra_meals_amount'] ?? '0').toString()),
         deductionAmount: double.parse(json['deduction_amount'].toString()),
         finalAmount: double.parse(json['final_amount'].toString()),
         generatedAt: DateTime.parse(json['generated_at'] as String),

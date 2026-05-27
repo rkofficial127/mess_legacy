@@ -34,11 +34,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _fetchProfile();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String login, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final res = await ApiClient.dio.post('/api/auth/login', data: {
-        'email': email,
+        'login': login,
         'password': password,
       });
       await _saveTokens(res.data);
@@ -55,8 +55,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String fullName,
+    required String phone,
     String? username,
-    String? phone,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
@@ -64,8 +64,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'email': email,
         'password': password,
         'full_name': fullName,
+        'phone': phone,
         if (username != null && username.isNotEmpty) 'username': username,
-        if (phone != null && phone.isNotEmpty) 'phone': phone,
       });
       await _saveTokens(res.data);
       await _fetchProfile();

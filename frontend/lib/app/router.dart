@@ -19,6 +19,13 @@ import '../shared/widgets/app_scaffold.dart';
 final _rootNavKey = GlobalKey<NavigatorState>();
 final _shellNavKey = GlobalKey<NavigatorState>();
 
+Page<void> _fadePage(Widget child) => CustomTransitionPage(
+      child: child,
+      transitionsBuilder: (_, animation, __, child) =>
+          FadeTransition(opacity: animation, child: child),
+      transitionDuration: const Duration(milliseconds: 200),
+    );
+
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
 
@@ -52,49 +59,44 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/dashboard',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: DashboardScreen()),
+            pageBuilder: (context, state) => _fadePage(const DashboardScreen()),
           ),
           GoRoute(
             path: '/calendar',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: CalendarScreen()),
+            pageBuilder: (context, state) => _fadePage(const CalendarScreen()),
           ),
           GoRoute(
             path: '/bills',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: BillScreen()),
+            pageBuilder: (context, state) => _fadePage(const BillScreen()),
           ),
           GoRoute(
             path: '/profile',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: ProfileScreen()),
+            pageBuilder: (context, state) => _fadePage(const ProfileScreen()),
           ),
           // Admin
           GoRoute(
             path: '/admin',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: AdminDashboardScreen()),
+                _fadePage(const AdminDashboardScreen()),
           ),
           GoRoute(
             path: '/admin/users',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: UserManagementScreen()),
+                _fadePage(const UserManagementScreen()),
           ),
           GoRoute(
             path: '/admin/mess-off',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: MessOffScreen()),
+            pageBuilder: (context, state) => _fadePage(const MessOffScreen()),
           ),
           GoRoute(
             path: '/admin/attendance',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: AttendanceReportScreen()),
+                _fadePage(const AttendanceReportScreen()),
           ),
           GoRoute(
             path: '/admin/bills',
             pageBuilder: (context, state) =>
-                const NoTransitionPage(child: BillsManagementScreen()),
+                _fadePage(const BillsManagementScreen()),
           ),
         ],
       ),

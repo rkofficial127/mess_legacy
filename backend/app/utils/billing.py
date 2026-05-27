@@ -60,16 +60,25 @@ def calculate_bill(
     year: int,
     user_skips: int,
     mess_off_meals: int,
+    extra_meals_count: int = 0,
+    extra_meal_rate: Decimal = Decimal("0.00"),
 ) -> dict:
     gross_meals = total_meals_in_month(meals_per_day, month, year)
     billable_meals = gross_meals - mess_off_meals
+
+    extra_meals_amount = (extra_meal_rate * Decimal(extra_meals_count)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
     if billable_meals <= 0:
         return {
             "total_meals": gross_meals,
             "mess_off_meals": mess_off_meals,
             "skipped_meals": user_skips,
+            "extra_meals_count": extra_meals_count,
+            "extra_meals_amount": extra_meals_amount,
             "deduction_amount": monthly_rate,
-            "final_amount": Decimal("0.00"),
+            "final_amount": extra_meals_amount,
         }
 
     per_meal = (monthly_rate / Decimal(billable_meals)).quantize(
@@ -78,12 +87,16 @@ def calculate_bill(
     deduction = (per_meal * Decimal(user_skips)).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     )
-    final = (monthly_rate - deduction).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    final = (monthly_rate - deduction + extra_meals_amount).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
 
     return {
         "total_meals": billable_meals,
         "mess_off_meals": mess_off_meals,
         "skipped_meals": user_skips,
+        "extra_meals_count": extra_meals_count,
+        "extra_meals_amount": extra_meals_amount,
         "deduction_amount": deduction,
         "final_amount": final,
     }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/constants.dart';
 import '../../core/providers/admin_providers.dart';
+import '../../shared/widgets/shimmer_loading.dart';
 
 class AttendanceReportScreen extends ConsumerStatefulWidget {
   const AttendanceReportScreen({super.key});
@@ -64,13 +64,19 @@ class _AttendanceReportScreenState
                 ),
                 const SizedBox(width: 8),
                 SegmentedButton<String?>(
-                  segments: [
-                    const ButtonSegment(value: null, label: Text('Auto')),
-                    ...['BREAKFAST', 'LUNCH', 'DINNER'].map((m) =>
-                        ButtonSegment(
-                            value: m,
-                            label: Text(mealLabel[m] ?? m,
-                                style: const TextStyle(fontSize: 12)))),
+                  segments: const [
+                    ButtonSegment(
+                        value: null,
+                        label: Icon(Icons.auto_awesome, size: 18)),
+                    ButtonSegment(
+                        value: 'BREAKFAST',
+                        label: Icon(Icons.wb_twilight_rounded, size: 18)),
+                    ButtonSegment(
+                        value: 'LUNCH',
+                        label: Icon(Icons.wb_sunny_rounded, size: 18)),
+                    ButtonSegment(
+                        value: 'DINNER',
+                        label: Icon(Icons.nightlight_round, size: 18)),
                   ],
                   selected: {_selectedMeal},
                   onSelectionChanged: (s) =>
@@ -87,8 +93,10 @@ class _AttendanceReportScreenState
           // Content
           Expanded(
             child: attendanceAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: ShimmerCardList(count: 5),
+              ),
               error: (e, _) => Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -138,7 +146,7 @@ class _AttendanceReportScreenState
                                 Text(
                                   mealLabel[report.mealType] ??
                                       report.mealType,
-                                  style: GoogleFonts.inter(
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -275,7 +283,7 @@ class _CountCard extends StatelessWidget {
         child: Column(
           children: [
             Text('$count',
-                style: GoogleFonts.inter(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: color,
