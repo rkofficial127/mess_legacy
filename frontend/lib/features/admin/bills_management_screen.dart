@@ -52,11 +52,6 @@ class _BillsManagementScreenState
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _generateAllBills,
-        icon: const Icon(Icons.calculate_outlined, size: 20),
-        label: const Text('Generate All'),
-      ),
       body: billsAsync.when(
         loading: () => const Padding(
           padding: EdgeInsets.only(top: 24),
@@ -211,24 +206,6 @@ class _BillsManagementScreenState
     }
   }
 
-  Future<void> _generateAllBills() async {
-    try {
-      final bills = await generateBills(_month, _year);
-      ref.invalidate(adminBillsProvider((month: _month, year: _year)));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${bills.length} bill(s) generated')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    }
-  }
-
   Future<void> _regenerateForUser(String userId) async {
     try {
       await generateBillForUser(userId, _month, _year);
@@ -269,7 +246,7 @@ class _EmptyBillsView extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          Text('Tap "Generate All" to create them',
+          Text('Tap a user to generate their bill',
               style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
         ],
       ),

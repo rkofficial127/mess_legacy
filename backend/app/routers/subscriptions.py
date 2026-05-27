@@ -113,11 +113,17 @@ async def update_subscription(
             status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found"
         )
 
-    plan = await db.get(MealPlan, payload.meal_plan_id)
-    if plan is None or not plan.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+    if payload.meal_plan_id is not None:
+        plan = await db.get(MealPlan, payload.meal_plan_id)
+        if plan is None or not plan.is_active:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+        sub.meal_plan_id = payload.meal_plan_id
 
-    sub.meal_plan_id = payload.meal_plan_id
+    if payload.start_date is not None:
+        sub.start_date = payload.start_date
+    if payload.stop_date is not None:
+        sub.stop_date = payload.stop_date
+
     await db.commit()
     await db.refresh(sub)
     return sub

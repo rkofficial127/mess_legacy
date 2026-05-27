@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../../core/providers/admin_providers.dart';
+import '../../core/providers/admin_providers.dart' show createMessOff, deleteMessOff;
 import '../../core/providers/meal_skip_provider.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 
@@ -215,6 +215,54 @@ class _MessOffScreenState extends ConsumerState<MessOffScreen> {
                                           color: cs.onSurfaceVariant)),
                               ],
                             ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (d) => AlertDialog(
+                                  title: const Text('Remove Mess Off?'),
+                                  content: Text(
+                                    'Remove ${DateFormat('d MMM').format(e.date)} — ${e.mealType}?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(d, false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () => Navigator.pop(d, true),
+                                      child: const Text('Remove'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm != true) return;
+                              try {
+                                await deleteMessOff(e.id);
+                                ref.invalidate(messOffProvider(
+                                    (month: month, year: year)));
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Mess off removed')),
+                                  );
+                                }
+                              } catch (err) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $err')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: Icon(Icons.delete_outline,
+                                size: 18, color: cs.error),
+                            tooltip: 'Remove',
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                                minWidth: 32, minHeight: 32),
                           ),
                         ],
                       ),

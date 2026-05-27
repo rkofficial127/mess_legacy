@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -9,10 +9,14 @@ class SubscriptionCreate(BaseModel):
     meal_plan_id: uuid.UUID
     month: int = Field(ge=1, le=12)
     year: int = Field(ge=2024, le=2100)
+    start_date: date | None = None
+    stop_date: date | None = None
 
 
 class SubscriptionUpdate(BaseModel):
-    meal_plan_id: uuid.UUID
+    meal_plan_id: uuid.UUID | None = None
+    start_date: date | None = None
+    stop_date: date | None = None
 
 
 class SubscriptionResponse(BaseModel):
@@ -24,6 +28,8 @@ class SubscriptionResponse(BaseModel):
     month: int
     year: int
     is_active: bool
+    start_date: date | None = None
+    stop_date: date | None = None
     created_at: datetime
 
 

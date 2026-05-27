@@ -1,6 +1,7 @@
 import uuid
+from datetime import date
 
-from sqlalchemy import Boolean, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Boolean, Date, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -23,6 +24,8 @@ class UserSubscription(Base, TimestampMixin):
     month: Mapped[int] = mapped_column(Integer, nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    stop_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     user = relationship("User", lazy="noload")
     plan = relationship("MealPlan", lazy="noload")

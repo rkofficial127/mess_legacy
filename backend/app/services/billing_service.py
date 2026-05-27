@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import extract, select
@@ -10,7 +11,7 @@ from app.models.meal_skip import MealSkip
 from app.models.mess_off import MessOffDay
 from app.models.subscription import UserSubscription
 from app.models.user import User
-from app.utils.billing import calculate_bill, count_mess_off_meals
+from app.utils.billing import calculate_bill, count_mess_off_meals, days_in_month
 
 
 async def _get_mess_off_entries(db: AsyncSession, month: int, year: int) -> list[dict]:
@@ -27,7 +28,8 @@ async def _get_mess_off_entries(db: AsyncSession, month: int, year: int) -> list
 
 
 async def _count_user_skips(
-    db: AsyncSession, user_id, month: int, year: int
+    db: AsyncSession, user_id, month: int, year: int,
+    start_day: int = 1, end_day: int | None = None,
 ) -> int:
     result = await db.execute(
         select(MealSkip).where(
@@ -36,11 +38,15 @@ async def _count_user_skips(
             extract("year", MealSkip.date) == year,
         )
     )
-    return len(result.scalars().all())
+    skips = result.scalars().all()
+    if end_day is None:
+        end_day = days_in_month(month, year)
+    return sum(1 for s in skips if start_day <= s.date.day <= end_day)
 
 
 async def _count_user_extra_meals(
-    db: AsyncSession, user_id, month: int, year: int
+    db: AsyncSession, user_id, month: int, year: int,
+    start_day: int = 1, end_day: int | None = None,
 ) -> int:
     result = await db.execute(
         select(ExtraMeal).where(
@@ -49,7 +55,32 @@ async def _count_user_extra_meals(
             extract("year", ExtraMeal.date) == year,
         )
     )
-    return len(result.scalars().all())
+    extras = result.scalars().all()
+    if end_day is None:
+        end_day = days_in_month(month, year)
+    return sum(1 for e in extras if start_day <= e.date.day <= end_day)
+
+
+def _resolve_date_range(
+    sub: UserSubscription, month: int, year: int,
+) -> tuple[int, int]:
+    total = days_in_month(month, year)
+    start_day = 1
+    end_day = total
+
+    if sub.start_date is not None:
+        if sub.start_date.year == year and sub.start_date.month == month:
+            start_day = sub.start_date.day
+        elif sub.start_date > date(year, month, total):
+            start_day = total + 1
+
+    if sub.stop_date is not None:
+        if sub.stop_date.year == year and sub.stop_date.month == month:
+            end_day = sub.stop_date.day
+        elif sub.stop_date < date(year, month, 1):
+            end_day = 0
+
+    return start_day, end_day
 
 
 async def generate_bill_for_user(
@@ -71,10 +102,15 @@ async def generate_bill_for_user(
     if plan is None:
         return None
 
+    start_day, end_day = _resolve_date_range(sub, month, year)
+
     mess_off_entries = await _get_mess_off_entries(db, month, year)
-    mess_off_count = count_mess_off_meals(mess_off_entries, plan.meals_per_day, month, year)
-    skip_count = await _count_user_skips(db, user_id, month, year)
-    extra_count = await _count_user_extra_meals(db, user_id, month, year)
+    mess_off_count = count_mess_off_meals(
+        mess_off_entries, plan.meals_per_day, month, year,
+        start_day=start_day, end_day=end_day,
+    )
+    skip_count = await _count_user_skips(db, user_id, month, year, start_day, end_day)
+    extra_count = await _count_user_extra_meals(db, user_id, month, year, start_day, end_day)
 
     bill_data = calculate_bill(
         monthly_rate=plan.monthly_rate,
@@ -85,6 +121,8 @@ async def generate_bill_for_user(
         mess_off_meals=mess_off_count,
         extra_meals_count=extra_count,
         extra_meal_rate=plan.extra_meal_rate,
+        start_day=start_day,
+        end_day=end_day,
     )
 
     bill = MonthlyBill(
@@ -92,7 +130,7 @@ async def generate_bill_for_user(
         month=month,
         year=year,
         plan_name=plan.name,
-        plan_rate=plan.monthly_rate,
+        plan_rate=bill_data["plan_rate"],
         total_meals=bill_data["total_meals"],
         skipped_meals=bill_data["skipped_meals"],
         mess_off_meals=bill_data["mess_off_meals"],

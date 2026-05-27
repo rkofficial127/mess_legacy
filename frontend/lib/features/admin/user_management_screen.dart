@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/models/user.dart';
 import '../../core/providers/admin_providers.dart';
@@ -657,39 +658,134 @@ class _UserDetailSheetState extends ConsumerState<_UserDetailSheet>
                 ),
               );
             }
-            return Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: cs.primary.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: cs.primary.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.restaurant_menu,
-                      color: cs.primary, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(sub.planName ?? 'Plan',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: cs.primary,
-                            )),
-                        Text(
-                          '${sub.planFoodType ?? '-'} · ${sub.planMealsPerDay ?? '-'} meals/day · ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}/mo',
-                          style: TextStyle(
-                              fontSize: 13, color: cs.onSurfaceVariant),
-                        ),
-                      ],
-                    ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        Border.all(color: cs.primary.withOpacity(0.2)),
                   ),
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.restaurant_menu,
+                          color: cs.primary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(sub.planName ?? 'Plan',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.primary,
+                                )),
+                            Text(
+                              '${sub.planFoodType ?? '-'} · ${sub.planMealsPerDay ?? '-'} meals/day · ₹${sub.planMonthlyRate?.toStringAsFixed(0) ?? '-'}/mo',
+                              style: TextStyle(
+                                  fontSize: 13, color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text('Meal Dates', style: tt.titleMedium),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DatePickerTile(
+                        label: 'Start Date',
+                        icon: Icons.play_arrow_rounded,
+                        date: sub.startDate,
+                        color: cs.primary,
+                        onPick: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: sub.startDate ?? DateTime(sub.year, sub.month, 1),
+                            firstDate: DateTime(2024),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked == null) return;
+                          try {
+                            await updateSubscriptionDates(
+                              subscriptionId: sub.id,
+                              startDate: picked,
+                            );
+                            ref.invalidate(userSubscriptionProvider((
+                              userId: user.id,
+                              month: now.month,
+                              year: now.year,
+                            )));
+                            if (widget.parentContext.mounted) {
+                              ScaffoldMessenger.of(widget.parentContext)
+                                  .showSnackBar(SnackBar(
+                                content: Text(
+                                    'Start date set to ${DateFormat('d MMM yyyy').format(picked)}'),
+                              ));
+                            }
+                          } catch (e) {
+                            if (widget.parentContext.mounted) {
+                              ScaffoldMessenger.of(widget.parentContext)
+                                  .showSnackBar(
+                                      SnackBar(content: Text('Error: $e')));
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _DatePickerTile(
+                        label: 'Stop Date',
+                        icon: Icons.stop_rounded,
+                        date: sub.stopDate,
+                        color: cs.error,
+                        onPick: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: sub.stopDate ?? DateTime.now(),
+                            firstDate: DateTime(2024),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked == null) return;
+                          try {
+                            await updateSubscriptionDates(
+                              subscriptionId: sub.id,
+                              stopDate: picked,
+                            );
+                            ref.invalidate(userSubscriptionProvider((
+                              userId: user.id,
+                              month: now.month,
+                              year: now.year,
+                            )));
+                            if (widget.parentContext.mounted) {
+                              ScaffoldMessenger.of(widget.parentContext)
+                                  .showSnackBar(SnackBar(
+                                content: Text(
+                                    'Stop date set to ${DateFormat('d MMM yyyy').format(picked)}'),
+                              ));
+                            }
+                          } catch (e) {
+                            if (widget.parentContext.mounted) {
+                              ScaffoldMessenger.of(widget.parentContext)
+                                  .showSnackBar(
+                                      SnackBar(content: Text('Error: $e')));
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             );
           },
         ),
@@ -880,6 +976,65 @@ class _UserDetailSheetState extends ConsumerState<_UserDetailSheet>
             child: const Text('Add Extra Meal'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DatePickerTile extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final DateTime? date;
+  final Color color;
+  final VoidCallback onPick;
+
+  const _DatePickerTile({
+    required this.label,
+    required this.icon,
+    required this.date,
+    required this.color,
+    required this.onPick,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onPick,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant)),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              date != null
+                  ? DateFormat('d MMM yyyy').format(date!)
+                  : 'Not set',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: date != null ? cs.onSurface : cs.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

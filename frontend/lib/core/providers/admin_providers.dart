@@ -139,12 +139,31 @@ Future<void> assignSubscription({
   required String planId,
   required int month,
   required int year,
+  DateTime? startDate,
+  DateTime? stopDate,
 }) async {
   await ApiClient.dio.post('/api/subscriptions', data: {
     'user_id': userId,
     'meal_plan_id': planId,
     'month': month,
     'year': year,
+    if (startDate != null)
+      'start_date': DateFormat('yyyy-MM-dd').format(startDate),
+    if (stopDate != null)
+      'stop_date': DateFormat('yyyy-MM-dd').format(stopDate),
+  });
+}
+
+Future<void> updateSubscriptionDates({
+  required String subscriptionId,
+  DateTime? startDate,
+  DateTime? stopDate,
+}) async {
+  await ApiClient.dio.put('/api/subscriptions/$subscriptionId', data: {
+    if (startDate != null)
+      'start_date': DateFormat('yyyy-MM-dd').format(startDate),
+    if (stopDate != null)
+      'stop_date': DateFormat('yyyy-MM-dd').format(stopDate),
   });
 }
 
@@ -220,4 +239,8 @@ Future<void> createExtraMeal({
 
 Future<void> deleteExtraMeal(String extraId) async {
   await ApiClient.dio.delete('/api/extra-meals/$extraId');
+}
+
+Future<void> deleteMessOff(String entryId) async {
+  await ApiClient.dio.delete('/api/mess-off/$entryId');
 }

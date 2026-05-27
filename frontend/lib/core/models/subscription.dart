@@ -5,6 +5,8 @@ class Subscription {
   final int month;
   final int year;
   final bool isActive;
+  final DateTime? startDate;
+  final DateTime? stopDate;
   final String? planName;
   final String? planFoodType;
   final int? planMealsPerDay;
@@ -17,6 +19,8 @@ class Subscription {
     required this.month,
     required this.year,
     required this.isActive,
+    this.startDate,
+    this.stopDate,
     this.planName,
     this.planFoodType,
     this.planMealsPerDay,
@@ -30,6 +34,12 @@ class Subscription {
         month: json['month'] as int,
         year: json['year'] as int,
         isActive: json['is_active'] as bool,
+        startDate: json['start_date'] != null
+            ? DateTime.parse(json['start_date'] as String)
+            : null,
+        stopDate: json['stop_date'] != null
+            ? DateTime.parse(json['stop_date'] as String)
+            : null,
         planName: json['plan_name'] as String?,
         planFoodType: json['plan_food_type'] as String?,
         planMealsPerDay: json['plan_meals_per_day'] as int?,
