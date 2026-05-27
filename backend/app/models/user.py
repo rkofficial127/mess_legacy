@@ -21,7 +21,7 @@ class User(Base, TimestampMixin, UpdatedAtMixin):
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
     username: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    phone: Mapped[str] = mapped_column(String(15), unique=True, nullable=False)
+    phone: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     role: Mapped[UserRole] = mapped_column(

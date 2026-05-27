@@ -17,9 +17,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # --- Phone mandatory ---
+    # Widen phone column from VARCHAR(15) to VARCHAR(20)
+    op.execute("ALTER TABLE users ALTER COLUMN phone TYPE VARCHAR(20)")
     # Backfill existing NULL phone values with a placeholder so NOT NULL succeeds
     op.execute(
-        "UPDATE users SET phone = 'UNKNOWN-' || SUBSTR(CAST(id AS TEXT), 1, 8) "
+        "UPDATE users SET phone = '000' || SUBSTR(CAST(id AS TEXT), 1, 7) "
         "WHERE phone IS NULL OR phone = ''"
     )
     op.execute("ALTER TABLE users ALTER COLUMN phone SET NOT NULL")
