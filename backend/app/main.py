@@ -65,6 +65,10 @@ def create_app() -> FastAPI:
         # SPA catch-all: serve index.html for any non-API, non-file route
         @app.get("/{full_path:path}", include_in_schema=False)
         async def serve_spa(full_path: str):
+            # Never intercept API or health routes (handles trailing-slash edge case)
+            if full_path.startswith("api") or full_path.startswith("health"):
+                from fastapi import HTTPException
+                raise HTTPException(status_code=404, detail="Not found")
             # Try to serve exact static file first (js, css, png, etc.)
             file_path = static_dir / full_path
             if full_path and file_path.is_file():
