@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/providers/auth_provider.dart';
 import '../features/admin/admin_dashboard_screen.dart';
+import '../features/auth/lock_screen.dart';
 import '../features/admin/attendance_report_screen.dart';
 import '../features/admin/bills_management_screen.dart';
 import '../features/admin/mess_off_screen.dart';
@@ -28,6 +29,7 @@ Page<void> _fadePage(Widget child) => CustomTransitionPage(
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
+  final isLocked = ref.watch(biometricLockProvider);
 
   return GoRouter(
     navigatorKey: _rootNavKey,
@@ -36,9 +38,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       final loggedIn = auth.isLoggedIn;
       final onAuthPage = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
+      final onLockPage = state.matchedLocation == '/lock';
 
       if (!loggedIn && !onAuthPage) return '/login';
       if (loggedIn && onAuthPage) {
+        return auth.isAdmin ? '/admin' : '/dashboard';
+      }
+      // Biometric lock gate
+      if (loggedIn && isLocked && !onLockPage) return '/lock';
+      if (loggedIn && !isLocked && onLockPage) {
         return auth.isAdmin ? '/admin' : '/dashboard';
       }
       return null;
@@ -51,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/lock',
+        builder: (context, state) => const LockScreen(),
       ),
       // User shell
       ShellRoute(

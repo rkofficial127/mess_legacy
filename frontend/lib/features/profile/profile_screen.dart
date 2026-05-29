@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/providers/auth_provider.dart';
+import '../../core/services/biometric_service.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -132,6 +134,10 @@ class ProfileScreen extends ConsumerWidget {
               ),
           ]),
           const SizedBox(height: 12),
+
+          // Biometric lock (mobile only)
+          if (!kIsWeb) _BiometricTile(ref: ref),
+          if (!kIsWeb) const SizedBox(height: 12),
 
           // Sign out in settings group
           _SettingsGroup(children: [
@@ -341,5 +347,68 @@ class _SettingsRow extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _BiometricTile extends StatefulWidget {
+  final WidgetRef ref;
+  const _BiometricTile({required this.ref});
+
+  @override
+  State<_BiometricTile> createState() => _BiometricTileState();
+}
+
+class _BiometricTileState extends State<_BiometricTile> {
+  bool _available = false;
+  bool _enabled = false;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final bio = widget.ref.read(biometricServiceProvider);
+    final avail = await bio.isAvailable;
+    final enabled = await bio.isEnabled;
+    if (mounted) {
+      setState(() {
+        _available = avail;
+        _enabled = enabled;
+        _loaded = true;
+      });
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    final bio = widget.ref.read(biometricServiceProvider);
+    if (value) {
+      // Verify identity before enabling
+      final ok = await bio.authenticate(reason: 'Verify to enable biometric lock');
+      if (!ok) return;
+    }
+    await bio.setEnabled(value);
+    if (mounted) setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded || !_available) return const SizedBox.shrink();
+
+    final cs = Theme.of(context).colorScheme;
+    return _SettingsGroup(children: [
+      _SettingsRow(
+        icon: Icons.fingerprint,
+        label: 'Biometric Lock',
+        subtitle: 'Require fingerprint or face to open app',
+        trailing: Switch.adaptive(
+          value: _enabled,
+          onChanged: _toggle,
+          activeColor: cs.primary,
+        ),
+      ),
+    ]);
   }
 }
