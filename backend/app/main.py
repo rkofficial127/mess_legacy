@@ -57,15 +57,22 @@ def create_app() -> FastAPI:
 
     static_dir = Path(__file__).resolve().parent.parent / "static"
     if static_dir.is_dir():
+        from starlette.responses import FileResponse
 
-        class SPAStaticFiles(StaticFiles):
-            async def get_response(self, path: str, scope):
-                try:
-                    return await super().get_response(path, scope)
-                except Exception:
-                    return await super().get_response("index.html", scope)
+        # Serve static assets at a sub-path so they don't conflict with API
+        app.mount("/static-assets", StaticFiles(directory=str(static_dir), html=False), name="static-assets")
 
-        app.mount("/", SPAStaticFiles(directory=str(static_dir), html=True), name="static")
+        # SPA catch-all: serve index.html for any non-API, non-file route
+        @app.get("/{full_path:path}", include_in_schema=False)
+        async def serve_spa(full_path: str):
+            # Try to serve exact static file first (js, css, png, etc.)
+            file_path = static_dir / full_path
+            if full_path and file_path.is_file():
+                import mimetypes
+                content_type = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
+                return FileResponse(file_path, media_type=content_type)
+            # Otherwise serve index.html for SPA routing
+            return FileResponse(static_dir / "index.html", media_type="text/html")
 
     return app
 
