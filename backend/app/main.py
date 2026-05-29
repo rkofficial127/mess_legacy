@@ -57,7 +57,7 @@ def create_app() -> FastAPI:
 
     static_dir = Path(__file__).resolve().parent.parent / "static"
     if static_dir.is_dir():
-        from starlette.responses import FileResponse
+        from starlette.responses import FileResponse, RedirectResponse
 
         # Serve static assets at a sub-path so they don't conflict with API
         app.mount("/static-assets", StaticFiles(directory=str(static_dir), html=False), name="static-assets")
@@ -65,10 +65,10 @@ def create_app() -> FastAPI:
         # SPA catch-all: serve index.html for any non-API, non-file route
         @app.get("/{full_path:path}", include_in_schema=False)
         async def serve_spa(full_path: str):
-            # Never intercept API or health routes (handles trailing-slash edge case)
+            # Redirect /api/... trailing-slash to non-slash so FastAPI routes match
             if full_path.startswith("api") or full_path.startswith("health"):
-                from fastapi import HTTPException
-                raise HTTPException(status_code=404, detail="Not found")
+                clean = "/" + full_path.rstrip("/")
+                return RedirectResponse(url=clean, status_code=307)
             # Try to serve exact static file first (js, css, png, etc.)
             file_path = static_dir / full_path
             if full_path and file_path.is_file():
