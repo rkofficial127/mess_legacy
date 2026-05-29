@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import '../api/api_client.dart';
-
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import 'pdf_download_stub.dart'
+    if (dart.library.html) 'pdf_download_web.dart'
+    if (dart.library.io) 'pdf_download_mobile.dart' as platform;
 
 Future<void> downloadBillPdf({
   required String billId,
@@ -12,7 +12,7 @@ Future<void> downloadBillPdf({
     '/api/bills/$billId/export',
     options: Options(responseType: ResponseType.bytes),
   );
-  _triggerDownload(res.data, filename);
+  await platform.savePdf(res.data, filename);
 }
 
 Future<void> downloadMyBillPdf({
@@ -25,14 +25,5 @@ Future<void> downloadMyBillPdf({
     queryParameters: {'month': month, 'year': year},
     options: Options(responseType: ResponseType.bytes),
   );
-  _triggerDownload(res.data, filename);
-}
-
-void _triggerDownload(List<int> bytes, String filename) {
-  final blob = html.Blob([bytes], 'application/pdf');
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  html.AnchorElement(href: url)
-    ..setAttribute('download', filename)
-    ..click();
-  html.Url.revokeObjectUrl(url);
+  await platform.savePdf(res.data, filename);
 }
