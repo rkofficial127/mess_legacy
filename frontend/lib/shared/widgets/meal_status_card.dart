@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app/decorations.dart';
 import '../../core/constants.dart';
+import '../../core/utils/meal_cutoff.dart';
+
+const Color savingsGreen = Color(0xFF22C55E);
 
 class MealStatusCard extends StatefulWidget {
   final String mealType;
@@ -11,7 +14,7 @@ class MealStatusCard extends StatefulWidget {
   final String? skipId;
   final DateTime date;
   final VoidCallback? onChanged;
-  final bool showCountdown;
+  final double? perMealValue;
   final Future<void> Function(DateTime date, String mealType)? onSkip;
   final Future<void> Function(String skipId)? onUndo;
 
@@ -24,7 +27,7 @@ class MealStatusCard extends StatefulWidget {
     this.skipId,
     required this.date,
     this.onChanged,
-    this.showCountdown = false,
+    this.perMealValue,
     this.onSkip,
     this.onUndo,
   });
@@ -48,22 +51,15 @@ class _MealStatusCardState extends State<MealStatusCard> {
     final label = mealLabel[widget.mealType] ?? widget.mealType;
     final canAct = !widget.isMessOff && !widget.isFrozen;
     final isLocked = widget.isFrozen && !widget.isMessOff;
+    final isDone = widget.isSkipped || widget.isFrozen || widget.isMessOff;
 
     Color accentColor;
-    String statusText;
-
-    if (widget.isMessOff) {
+    if (widget.isMessOff || (widget.isFrozen && !widget.isSkipped)) {
       accentColor = cs.onSurfaceVariant;
-      statusText = 'Mess Off';
     } else if (widget.isSkipped) {
       accentColor = cs.error;
-      statusText = isLocked ? 'Skipped (Locked)' : 'Skipped';
-    } else if (widget.isFrozen) {
-      accentColor = cs.onSurfaceVariant;
-      statusText = 'Taking (Locked)';
     } else {
       accentColor = cs.primary;
-      statusText = 'Taking';
     }
 
     return AnimatedContainer(
@@ -72,74 +68,109 @@ class _MealStatusCardState extends State<MealStatusCard> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: AppDecorations.card(cs),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: Icon(
-                  _mealIcons[widget.mealType] ?? Icons.restaurant,
-                  key: ValueKey('${widget.mealType}_$accentColor'),
-                  size: 20,
-                  color: accentColor,
-                ),
+      child: Opacity(
+        opacity: isDone && !widget.isSkipped ? 0.7 : 1,
+        child: Row(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Icon(
+                _mealIcons[widget.mealType] ?? Icons.restaurant,
+                key: ValueKey('${widget.mealType}_$accentColor'),
+                size: 20,
+                color: accentColor,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15)),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      child: Text(
-                        statusText,
-                        key: ValueKey(statusText),
-                        style: TextStyle(
-                            color: accentColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500),
-                      ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: KeyedSubtree(
+                      key: ValueKey(
+                          '${widget.isSkipped}_${widget.isFrozen}_${widget.isMessOff}'),
+                      child: _buildSubtitle(cs),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              if (isLocked)
-                Icon(Icons.lock_outline, size: 16, color: cs.onSurfaceVariant),
-              if (canAct)
-                _loading
-                    ? const SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: Padding(
-                          padding: EdgeInsets.all(6),
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ))
-                    : TextButton(
-                        onPressed: _handleAction,
-                        style: TextButton.styleFrom(
-                          foregroundColor:
-                              widget.isSkipped ? cs.primary : cs.error,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          minimumSize: const Size(0, 36),
-                        ),
-                        child: Text(widget.isSkipped ? 'Undo' : 'Skip',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+            if (isLocked && !widget.isSkipped)
+              Icon(Icons.lock_outline, size: 16, color: cs.onSurfaceVariant),
+            if (canAct)
+              _loading
+                  ? const SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: Padding(
+                        padding: EdgeInsets.all(6),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ))
+                  : TextButton(
+                      onPressed: _handleAction,
+                      style: TextButton.styleFrom(
+                        foregroundColor:
+                            widget.isSkipped ? cs.primary : cs.error,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: const Size(0, 36),
                       ),
-            ],
-          ),
-          if (widget.showCountdown &&
-              !widget.isMessOff &&
-              !widget.isSkipped &&
-              !widget.isFrozen)
-            _CountdownBar(mealType: widget.mealType, date: widget.date),
-        ],
+                      child: Text(widget.isSkipped ? 'Undo' : 'Skip',
+                          style:
+                              const TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildSubtitle(ColorScheme cs) {
+    final muted = TextStyle(fontSize: 12, color: cs.onSurfaceVariant);
+
+    if (widget.isMessOff) {
+      return Text('Mess off', style: muted);
+    }
+    if (widget.isSkipped) {
+      return Text.rich(TextSpan(
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+        children: [
+          TextSpan(text: 'Skipped', style: TextStyle(color: cs.error)),
+          if (widget.perMealValue != null)
+            TextSpan(
+              text: ' · ₹${widget.perMealValue!.round()} off your bill',
+              style: const TextStyle(color: savingsGreen),
+            ),
+        ],
+      ));
+    }
+    if (widget.isFrozen) {
+      return Text('Closed for changes', style: muted);
+    }
+
+    final serving = mealServingTime[widget.mealType];
+    final deadline = skipDeadlineLabel(widget.mealType, widget.date);
+    final urgent = mealCutoff(widget.mealType, widget.date)
+            .difference(DateTime.now())
+            .inMinutes <
+        60;
+    return Text.rich(TextSpan(
+      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+      children: [
+        if (serving != null) TextSpan(text: 'Served $serving · '),
+        TextSpan(
+          text: 'skip by $deadline',
+          style: urgent
+              ? TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)
+              : null,
+        ),
+      ],
+    ));
   }
 
   Future<void> _handleAction() async {
@@ -161,62 +192,5 @@ class _MealStatusCardState extends State<MealStatusCard> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-}
-
-class _CountdownBar extends StatelessWidget {
-  final String mealType;
-  final DateTime date;
-  const _CountdownBar({required this.mealType, required this.date});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final now = DateTime.now();
-    DateTime cutoff;
-    if (mealType == 'BREAKFAST') {
-      cutoff = DateTime(date.year, date.month, date.day - 1, 20, 0);
-    } else if (mealType == 'LUNCH') {
-      cutoff = DateTime(date.year, date.month, date.day, 8, 0);
-    } else {
-      cutoff = DateTime(date.year, date.month, date.day, 16, 0);
-    }
-
-    final diff = cutoff.difference(now);
-    if (diff.isNegative) return const SizedBox.shrink();
-
-    final totalMinutes = diff.inMinutes;
-    final hours = diff.inHours;
-    final minutes = totalMinutes % 60;
-    const maxMinutes = 480.0;
-    final progress = (totalMinutes / maxMinutes).clamp(0.0, 1.0);
-    final isUrgent = totalMinutes < 60;
-
-    final barColor = isUrgent ? cs.tertiary : cs.primary;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 4,
-                backgroundColor: cs.outline,
-                color: barColor.withOpacity(0.7),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text('${hours}h ${minutes}m left',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: isUrgent ? cs.tertiary : cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
   }
 }

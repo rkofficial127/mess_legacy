@@ -14,3 +14,9 @@ const Map<String, String> mealLabel = {
   'LUNCH': 'Lunch',
   'DINNER': 'Dinner',
 };
+
+const Map<String, String> mealServingTime = {
+  'BREAKFAST': '7:30 – 9:30 AM',
+  'LUNCH': '12:30 – 2:00 PM',
+  'DINNER': '7:30 – 9:00 PM',
+};
