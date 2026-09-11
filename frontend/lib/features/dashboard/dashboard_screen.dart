@@ -37,8 +37,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     )..forward();
     _countdownTimer = Timer.periodic(
       const Duration(seconds: 30),
-      (_) => setState(() {}),
+      (_) => _refreshData(),
     );
+  }
+
+  void _refreshData() {
+    if (!mounted) return;
+    final now = DateTime.now();
+    ref.invalidate(subscriptionProvider);
+    ref.invalidate(monthSkipsProvider((month: now.month, year: now.year)));
+    ref.invalidate(messOffProvider((month: now.month, year: now.year)));
+    ref.invalidate(myDeliveryStatusProvider);
   }
 
   @override
