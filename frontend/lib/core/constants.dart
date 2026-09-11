@@ -1,6 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+// Web build: same-origin (backend serves the frontend), so a relative
+// base URL avoids hardcoding a host that will change across deploys.
+// Native builds need an absolute URL since there's no "page origin".
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://mess-api-production.up.railway.app',
+  defaultValue: kIsWeb ? '' : 'https://mess-legacy.onrender.com',
 );
 
 const Map<String, String> mealEmoji = {
