@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.routers import auth as auth_router
 from app.routers import bills as bills_router
 from app.routers import extra_meals as extra_meals_router
+from app.routers import meal_deliveries as meal_deliveries_router
 from app.routers import meal_plans as plans_router
 from app.routers import meal_skips as skips_router
 from app.routers import mess_off as mess_off_router
@@ -50,6 +51,7 @@ def create_app() -> FastAPI:
     app.include_router(extra_meals_router.router)
     app.include_router(reports_router.router)
     app.include_router(bills_router.router)
+    app.include_router(meal_deliveries_router.router)
 
     @app.get("/health", tags=["meta"])
     async def health() -> dict[str, str]:

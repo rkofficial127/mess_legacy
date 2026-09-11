@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../app/decorations.dart';
 import '../../core/constants.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/delivery_status_provider.dart';
 import '../../core/providers/meal_skip_provider.dart';
 import '../../core/utils/meal_cutoff.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -111,6 +112,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ref.watch(monthSkipsProvider((month: now.month, year: now.year)));
     final messOffAsync =
         ref.watch(messOffProvider((month: now.month, year: now.year)));
+    final deliveryStatusAsync = ref.watch(myDeliveryStatusProvider);
 
     return Scaffold(
       body: subAsync.when(
@@ -204,12 +206,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 final isSkipped = skip != null;
                 final frozen = isMealCutoffPassed(meal, today);
                 final canSwipe = !isMessOff && !frozen && !isSkipped;
+                final isDelivered =
+                    deliveryStatusAsync.valueOrNull?[meal] ?? false;
 
                 final card = MealStatusCard(
                   mealType: meal,
                   isSkipped: isSkipped,
                   isMessOff: isMessOff,
                   isFrozen: frozen,
+                  isDelivered: isDelivered,
                   skipId: skip?.id,
                   date: today,
                   perMealValue: perMeal,
@@ -259,6 +264,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       monthSkipsProvider((month: now.month, year: now.year)));
                   ref.invalidate(
                       messOffProvider((month: now.month, year: now.year)));
+                  ref.invalidate(myDeliveryStatusProvider);
                 },
                 child: FadeTransition(
                   opacity: CurvedAnimation(

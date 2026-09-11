@@ -61,6 +61,7 @@ async def regular_user(db_session) -> User:
         email="user@example.com",
         password_hash=hash_password("userpass123"),
         full_name="Regular User",
+        phone="9000000001",
         role=UserRole.USER,
         is_active=True,
     )
@@ -76,6 +77,7 @@ async def admin_user(db_session) -> User:
         email="admin@example.com",
         password_hash=hash_password("adminpass123"),
         full_name="Test Admin",
+        phone="9000000002",
         role=UserRole.ADMIN,
         is_active=True,
     )
@@ -90,6 +92,7 @@ async def google_only_user(db_session) -> User:
     user = User(
         email="googleuser@example.com",
         full_name="Google User",
+        phone="9000000003",
         google_id="google-sub-12345",
         role=UserRole.USER,
         is_active=True,

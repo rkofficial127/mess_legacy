@@ -11,6 +11,7 @@ class MealStatusCard extends StatefulWidget {
   final bool isSkipped;
   final bool isMessOff;
   final bool isFrozen;
+  final bool isDelivered;
   final String? skipId;
   final DateTime date;
   final VoidCallback? onChanged;
@@ -24,6 +25,7 @@ class MealStatusCard extends StatefulWidget {
     required this.isSkipped,
     required this.isMessOff,
     required this.isFrozen,
+    this.isDelivered = false,
     this.skipId,
     required this.date,
     this.onChanged,
@@ -50,11 +52,13 @@ class _MealStatusCardState extends State<MealStatusCard> {
     final cs = Theme.of(context).colorScheme;
     final label = mealLabel[widget.mealType] ?? widget.mealType;
     final canAct = !widget.isMessOff && !widget.isFrozen;
-    final isLocked = widget.isFrozen && !widget.isMessOff;
+    final isLocked = widget.isFrozen && !widget.isMessOff && !widget.isDelivered;
     final isDone = widget.isSkipped || widget.isFrozen || widget.isMessOff;
 
     Color accentColor;
-    if (widget.isMessOff || (widget.isFrozen && !widget.isSkipped)) {
+    if (widget.isDelivered && !widget.isSkipped) {
+      accentColor = savingsGreen;
+    } else if (widget.isMessOff || (widget.isFrozen && !widget.isSkipped)) {
       accentColor = cs.onSurfaceVariant;
     } else if (widget.isSkipped) {
       accentColor = cs.error;
@@ -69,7 +73,7 @@ class _MealStatusCardState extends State<MealStatusCard> {
       padding: const EdgeInsets.all(14),
       decoration: AppDecorations.card(cs),
       child: Opacity(
-        opacity: isDone && !widget.isSkipped ? 0.7 : 1,
+        opacity: isDone && !widget.isSkipped && !widget.isDelivered ? 0.7 : 1,
         child: Row(
           children: [
             AnimatedSwitcher(
@@ -94,7 +98,7 @@ class _MealStatusCardState extends State<MealStatusCard> {
                     duration: const Duration(milliseconds: 250),
                     child: KeyedSubtree(
                       key: ValueKey(
-                          '${widget.isSkipped}_${widget.isFrozen}_${widget.isMessOff}'),
+                          '${widget.isSkipped}_${widget.isFrozen}_${widget.isMessOff}_${widget.isDelivered}'),
                       child: _buildSubtitle(cs),
                     ),
                   ),
@@ -148,6 +152,20 @@ class _MealStatusCardState extends State<MealStatusCard> {
             ),
         ],
       ));
+    }
+    if (widget.isDelivered) {
+      return const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.check_circle, size: 14, color: savingsGreen),
+          SizedBox(width: 4),
+          Text('Delivered',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: savingsGreen,
+                  fontWeight: FontWeight.w600)),
+        ],
+      );
     }
     if (widget.isFrozen) {
       return Text('Closed for changes', style: muted);

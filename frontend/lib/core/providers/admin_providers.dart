@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../api/api_client.dart';
 import '../models/bill.dart';
+import '../models/meal_delivery.dart';
 import '../models/meal_plan.dart';
 import '../models/mess_off.dart';
 import '../models/subscription.dart';
@@ -243,4 +244,30 @@ Future<void> deleteExtraMeal(String extraId) async {
 
 Future<void> deleteMessOff(String entryId) async {
   await ApiClient.dio.delete('/api/mess-off/$entryId');
+}
+
+final deliveriesProvider = FutureProvider.autoDispose
+    .family<List<MealDelivery>, ({String date, String mealType})>(
+        (ref, args) async {
+  final res = await ApiClient.dio.get('/api/meal-deliveries', queryParameters: {
+    'target_date': args.date,
+    'meal_type': args.mealType,
+  });
+  return (res.data as List).map((j) => MealDelivery.fromJson(j)).toList();
+});
+
+Future<void> markDelivered({
+  required String userId,
+  required DateTime date,
+  required String mealType,
+}) async {
+  await ApiClient.dio.post('/api/meal-deliveries', data: {
+    'user_id': userId,
+    'date': DateFormat('yyyy-MM-dd').format(date),
+    'meal_type': mealType,
+  });
+}
+
+Future<void> unmarkDelivered(String deliveryId) async {
+  await ApiClient.dio.delete('/api/meal-deliveries/$deliveryId');
 }
