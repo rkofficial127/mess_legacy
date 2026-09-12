@@ -2,16 +2,53 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import Response
-from sqlalchemy import func, select
+from sqlalchemy import extract, func, select
 
 from app.dependencies import CurrentAdmin, CurrentUser, DbSession
 from app.models.bill import MonthlyBill
+from app.models.extra_meal import ExtraMeal
+from app.models.meal_skip import MealSkip
+from app.models.mess_off import MessOffDay
 from app.models.user import User
 from app.schemas.bill import BillGenerateRequest, BillGenerateUserRequest, BillResponse, BillSummary
 from app.services.billing_service import generate_bill_for_user, generate_bills
 from app.services.pdf_service import generate_bill_pdf
 
 router = APIRouter(prefix="/api/bills", tags=["bills"])
+
+
+async def _fetch_bill_ledger(db, user_id: uuid.UUID, month: int, year: int):
+    skips_result = await db.execute(
+        select(MealSkip)
+        .where(
+            MealSkip.user_id == user_id,
+            extract("month", MealSkip.date) == month,
+            extract("year", MealSkip.date) == year,
+        )
+        .order_by(MealSkip.date)
+    )
+    mess_off_result = await db.execute(
+        select(MessOffDay)
+        .where(
+            extract("month", MessOffDay.date) == month,
+            extract("year", MessOffDay.date) == year,
+        )
+        .order_by(MessOffDay.date)
+    )
+    extras_result = await db.execute(
+        select(ExtraMeal)
+        .where(
+            ExtraMeal.user_id == user_id,
+            extract("month", ExtraMeal.date) == month,
+            extract("year", ExtraMeal.date) == year,
+        )
+        .order_by(ExtraMeal.date)
+    )
+    return (
+        list(skips_result.scalars().all()),
+        list(mess_off_result.scalars().all()),
+        list(extras_result.scalars().all()),
+    )
 
 
 async def _enrich_bills(db, bills: list) -> list[dict]:
@@ -32,7 +69,7 @@ async def generate(payload: BillGenerateRequest, db: DbSession, _: CurrentAdmin)
     if not bills:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No new bills to generate (all already exist or no active subscriptions)",
+            detail="No active subscriptions for this month",
         )
     return await _enrich_bills(db, bills)
 
@@ -45,7 +82,6 @@ async def generate_user_bill(payload: BillGenerateUserRequest, db: DbSession, _:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User has no active subscription for this month",
         )
-    db.add(bill)
     await db.commit()
     await db.refresh(bill)
     enriched = await _enrich_bills(db, [bill])
@@ -189,7 +225,8 @@ async def export_my_pdf(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bill not found for this month"
         )
-    pdf_bytes = generate_bill_pdf(bill, current_user.full_name)
+    skips, mess_offs, extras = await _fetch_bill_ledger(db, bill.user_id, bill.month, bill.year)
+    pdf_bytes = generate_bill_pdf(bill, current_user.full_name, skips, mess_offs, extras)
     filename = f"bill_{current_user.full_name.replace(' ', '_')}_{bill.month:02d}_{bill.year}.pdf"
     return Response(
         content=pdf_bytes,
@@ -208,7 +245,8 @@ async def export_pdf(bill_id: uuid.UUID, db: DbSession, _: CurrentAdmin):
     user = await db.get(User, bill.user_id)
     user_name = user.full_name if user else "Unknown"
 
-    pdf_bytes = generate_bill_pdf(bill, user_name)
+    skips, mess_offs, extras = await _fetch_bill_ledger(db, bill.user_id, bill.month, bill.year)
+    pdf_bytes = generate_bill_pdf(bill, user_name, skips, mess_offs, extras)
     filename = f"bill_{user_name.replace(' ', '_')}_{bill.month:02d}_{bill.year}.pdf"
     return Response(
         content=pdf_bytes,

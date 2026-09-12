@@ -47,21 +47,31 @@ async def test_generate_bills(client, admin_user, billing_setup, auth_headers):
     assert Decimal(bill["final_amount"]) > 0
 
 
-async def test_generate_bills_idempotent(
+async def test_generate_bills_overrides_existing(
     client, admin_user, billing_setup, auth_headers
 ):
-    await client.post(
+    """Regenerating a bill for the same month updates the existing row in
+    place — it must not create a second bill for that user/month."""
+    first = await client.post(
         "/api/bills/generate",
         json={"month": 6, "year": 2026},
         headers=auth_headers(admin_user),
     )
-    res = await client.post(
+    first_id = first.json()[0]["id"]
+
+    second = await client.post(
         "/api/bills/generate",
         json={"month": 6, "year": 2026},
         headers=auth_headers(admin_user),
     )
-    assert res.status_code == 404
-    assert "no new bills" in res.json()["detail"].lower()
+    assert second.status_code == 201
+    assert second.json()[0]["id"] == first_id
+
+    listed = await client.get(
+        "/api/bills?month=6&year=2026", headers=auth_headers(admin_user)
+    )
+    matching = [b for b in listed.json() if b["id"] == first_id]
+    assert len(matching) == 1
 
 
 async def test_my_bill(

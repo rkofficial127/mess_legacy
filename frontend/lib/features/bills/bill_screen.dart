@@ -4,9 +4,12 @@ import 'package:intl/intl.dart';
 
 import '../../app/decorations.dart';
 import '../../core/providers/bill_provider.dart';
+import '../../core/providers/payment_provider.dart';
 import '../../core/utils/pdf_download.dart';
+import '../../shared/widgets/bill_detail_sheet.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/meal_status_card.dart' show savingsGreen;
+import '../../shared/widgets/payment_history_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 
 class BillScreen extends ConsumerStatefulWidget {
@@ -34,6 +37,7 @@ class _BillScreenState extends ConsumerState<BillScreen> {
     final tt = Theme.of(context).textTheme;
     final billAsync =
         ref.watch(myBillProvider((month: _month, year: _year)));
+    final balanceAsync = ref.watch(myBalanceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Bill')),
@@ -145,6 +149,101 @@ class _BillScreenState extends ConsumerState<BillScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => BillDetailSheet.show(
+                          context,
+                          userId: bill.userId,
+                          isAdminView: false,
+                          month: _month,
+                          year: _year,
+                        ),
+                        icon: Icon(Icons.receipt_long_outlined,
+                            size: 16, color: cs.primary),
+                        label: Text('View details',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: cs.primary,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    balanceAsync.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (balance) {
+                        final isCredit = balance.balance > 0;
+                        final isSettled = balance.balance == 0;
+                        final color = isSettled
+                            ? cs.onSurfaceVariant
+                            : (isCredit ? savingsGreen : cs.error);
+                        final label = isSettled
+                            ? 'Settled'
+                            : (isCredit
+                                ? '₹${balance.balance.abs().toStringAsFixed(0)} in credit'
+                                : '₹${balance.balance.abs().toStringAsFixed(0)} due');
+                        return Column(
+                          children: [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 14, horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: color.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: color.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSettled
+                                        ? Icons.check_circle_outline
+                                        : (isCredit
+                                            ? Icons.trending_up
+                                            : Icons.error_outline),
+                                    size: 20,
+                                    color: color,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Account Balance',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: cs.onSurfaceVariant)),
+                                        Text(label,
+                                            style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: color)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () => PaymentHistorySheet.show(
+                                context,
+                                userId: bill.userId,
+                                isAdminView: false,
+                              ),
+                              icon: Icon(Icons.history,
+                                  size: 16, color: cs.primary),
+                              label: Text('View payment history',
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      color: cs.primary,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     if (bill.deductionAmount > 0) ...[

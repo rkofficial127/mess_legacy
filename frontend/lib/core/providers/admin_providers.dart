@@ -4,9 +4,12 @@ import 'package:intl/intl.dart';
 
 import '../api/api_client.dart';
 import '../models/bill.dart';
+import '../models/extra_meal.dart';
 import '../models/meal_delivery.dart';
 import '../models/meal_plan.dart';
+import '../models/meal_skip.dart';
 import '../models/mess_off.dart';
+import '../models/payment.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
 
@@ -270,4 +273,57 @@ Future<void> markDelivered({
 
 Future<void> unmarkDelivered(String deliveryId) async {
   await ApiClient.dio.delete('/api/meal-deliveries/$deliveryId');
+}
+
+final adminUserSkipsProvider = FutureProvider.autoDispose
+    .family<List<MealSkip>, ({String userId, int month, int year})>(
+        (ref, args) async {
+  final res = await ApiClient.dio.get('/api/meal-skips', queryParameters: {
+    'user_id': args.userId,
+    'month': args.month,
+    'year': args.year,
+  });
+  return (res.data as List).map((j) => MealSkip.fromJson(j)).toList();
+});
+
+final adminUserExtraMealsProvider = FutureProvider.autoDispose
+    .family<List<ExtraMeal>, ({String userId, int month, int year})>(
+        (ref, args) async {
+  final res = await ApiClient.dio.get('/api/extra-meals', queryParameters: {
+    'user_id': args.userId,
+    'month': args.month,
+    'year': args.year,
+  });
+  return (res.data as List).map((j) => ExtraMeal.fromJson(j)).toList();
+});
+
+final adminUserBalanceProvider =
+    FutureProvider.autoDispose.family<Balance, String>((ref, userId) async {
+  final res = await ApiClient.dio
+      .get('/api/payments/balance', queryParameters: {'user_id': userId});
+  return Balance.fromJson(res.data);
+});
+
+final adminUserPaymentsProvider =
+    FutureProvider.autoDispose.family<List<Payment>, String>((ref, userId) async {
+  final res = await ApiClient.dio.get('/api/payments/user/$userId');
+  return (res.data as List).map((j) => Payment.fromJson(j)).toList();
+});
+
+Future<void> recordPayment({
+  required String userId,
+  required double amount,
+  required DateTime date,
+  String? note,
+}) async {
+  await ApiClient.dio.post('/api/payments', data: {
+    'user_id': userId,
+    'amount': amount,
+    'date': DateFormat('yyyy-MM-dd').format(date),
+    if (note != null && note.isNotEmpty) 'note': note,
+  });
+}
+
+Future<void> deletePayment(String paymentId) async {
+  await ApiClient.dio.delete('/api/payments/$paymentId');
 }

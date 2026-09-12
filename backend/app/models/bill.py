@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, Numeric, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -12,7 +12,7 @@ from app.models._mixins import GUID, uuid_pk
 class MonthlyBill(Base):
     __tablename__ = "monthly_bills"
     __table_args__ = (
-        Index("ix_bill_user_month_year", "user_id", "month", "year"),
+        UniqueConstraint("user_id", "month", "year", name="uq_bill_user_month_year"),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()

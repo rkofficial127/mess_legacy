@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import extract, select
@@ -125,20 +125,31 @@ async def generate_bill_for_user(
         end_day=end_day,
     )
 
-    bill = MonthlyBill(
-        user_id=user_id,
-        month=month,
-        year=year,
-        plan_name=plan.name,
-        plan_rate=bill_data["plan_rate"],
-        total_meals=bill_data["total_meals"],
-        skipped_meals=bill_data["skipped_meals"],
-        mess_off_meals=bill_data["mess_off_meals"],
-        extra_meals_count=bill_data["extra_meals_count"],
-        extra_meals_amount=bill_data["extra_meals_amount"],
-        deduction_amount=bill_data["deduction_amount"],
-        final_amount=bill_data["final_amount"],
+    # A month can only have one bill per user — regenerating updates the
+    # existing row in place rather than creating a duplicate.
+    existing_result = await db.execute(
+        select(MonthlyBill).where(
+            MonthlyBill.user_id == user_id,
+            MonthlyBill.month == month,
+            MonthlyBill.year == year,
+        )
     )
+    bill = existing_result.scalar_one_or_none()
+    if bill is None:
+        bill = MonthlyBill(user_id=user_id, month=month, year=year)
+        db.add(bill)
+
+    bill.plan_name = plan.name
+    bill.plan_rate = bill_data["plan_rate"]
+    bill.total_meals = bill_data["total_meals"]
+    bill.skipped_meals = bill_data["skipped_meals"]
+    bill.mess_off_meals = bill_data["mess_off_meals"]
+    bill.extra_meals_count = bill_data["extra_meals_count"]
+    bill.extra_meals_amount = bill_data["extra_meals_amount"]
+    bill.deduction_amount = bill_data["deduction_amount"]
+    bill.final_amount = bill_data["final_amount"]
+    bill.generated_at = datetime.now(timezone.utc)
+
     return bill
 
 
@@ -156,7 +167,6 @@ async def generate_bills(db: AsyncSession, month: int, year: int) -> list[Monthl
     for sub in subs:
         bill = await generate_bill_for_user(db, sub.user_id, month, year)
         if bill:
-            db.add(bill)
             bills.append(bill)
 
     if bills:

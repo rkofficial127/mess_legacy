@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers/admin_providers.dart';
 import '../../core/utils/pdf_download.dart';
+import '../../shared/widgets/bill_detail_sheet.dart';
+import '../../shared/widgets/meal_status_card.dart' show savingsGreen;
+import '../../shared/widgets/payment_history_sheet.dart';
 import '../../shared/widgets/shimmer_loading.dart';
 
 class BillsManagementScreen extends ConsumerStatefulWidget {
@@ -58,10 +61,12 @@ class _BillsManagementScreenState
           padding: EdgeInsets.only(top: 24),
           child: ShimmerCardList(count: 5),
         ),
-        error: (e, _) => _EmptyBillsView(cs: cs, month: _month, year: _year),
+        error: (e, _) => _EmptyBillsView(
+            cs: cs, month: _month, year: _year, onUserTap: _showUserBillHistory),
         data: (bills) {
           if (bills.isEmpty) {
-            return _EmptyBillsView(cs: cs, month: _month, year: _year);
+            return _EmptyBillsView(
+                cs: cs, month: _month, year: _year, onUserTap: _showUserBillHistory);
           }
 
           final totalRevenue =
@@ -226,31 +231,105 @@ class _BillsManagementScreenState
   }
 }
 
-class _EmptyBillsView extends StatelessWidget {
+class _EmptyBillsView extends ConsumerWidget {
   final ColorScheme cs;
   final int month;
   final int year;
-  const _EmptyBillsView(
-      {required this.cs, required this.month, required this.year});
+  final void Function(String userId, String userName) onUserTap;
+  const _EmptyBillsView({
+    required this.cs,
+    required this.month,
+    required this.year,
+    required this.onUserTap,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.receipt_long_outlined,
-              size: 48, color: cs.onSurfaceVariant.withOpacity(0.3)),
-          const SizedBox(height: 12),
-          Text(
-            'No bills for ${DateFormat('MMM yyyy').format(DateTime(year, month))}',
-            style: Theme.of(context).textTheme.titleMedium,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final usersAsync = ref.watch(usersProvider);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+          child: Column(
+            children: [
+              Icon(Icons.receipt_long_outlined,
+                  size: 40, color: cs.onSurfaceVariant.withOpacity(0.3)),
+              const SizedBox(height: 10),
+              Text(
+                'No bills for ${DateFormat('MMM yyyy').format(DateTime(year, month))}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text('Tap a user below to generate their bill',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text('Tap a user to generate their bill',
-              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-        ],
-      ),
+        ),
+        Expanded(
+          child: usersAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: ShimmerCardList(count: 4, cardHeight: 56),
+            ),
+            error: (e, _) => Center(child: Text('Error: $e')),
+            data: (users) {
+              final active = users.where((u) => u.isActive).toList();
+              if (active.isEmpty) {
+                return Center(
+                  child: Text('No active users yet',
+                      style: TextStyle(color: cs.onSurfaceVariant)),
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemCount: active.length,
+                itemBuilder: (ctx, i) {
+                  final u = active[i];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => onUserTap(u.id, u.fullName),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: cs.outline),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundColor: cs.primary.withOpacity(0.1),
+                            child: Text(
+                              u.fullName.isNotEmpty
+                                  ? u.fullName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: cs.primary,
+                                  fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(u.fullName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 14)),
+                          ),
+                          Icon(Icons.chevron_right,
+                              size: 18, color: cs.onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -319,6 +398,7 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
     final billsAsync = ref.watch(
       userBillsProvider((userId: widget.userId, month: null, year: null)),
     );
+    final balanceAsync = ref.watch(adminUserBalanceProvider(widget.userId));
 
     return Column(
       children: [
@@ -327,37 +407,123 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: cs.outline)),
           ),
-          child: Row(
+          child: Column(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: cs.primary.withOpacity(0.1),
-                child: Text(
-                  widget.userName[0].toUpperCase(),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: cs.primary,
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: cs.primary.withOpacity(0.1),
+                    child: Text(
+                      widget.userName[0].toUpperCase(),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: cs.primary,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.userName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 16)),
+                        Text('Bill History',
+                            style: TextStyle(
+                                fontSize: 12, color: cs.onSurfaceVariant)),
+                      ],
+                    ),
+                  ),
+                  Flexible(
+                    child: FilledButton.tonalIcon(
+                      onPressed: () => _generateForUser(),
+                      icon: const Icon(Icons.calculate_outlined, size: 16),
+                      label: const Text('Generate'),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.userName,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 16)),
-                    Text('Bill History',
-                        style: TextStyle(
-                            fontSize: 12, color: cs.onSurfaceVariant)),
-                  ],
-                ),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: () => _generateForUser(),
-                icon: const Icon(Icons.calculate_outlined, size: 16),
-                label: const Text('Generate'),
+              const SizedBox(height: 12),
+              balanceAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (balance) {
+                  final isCredit = balance.balance > 0;
+                  final isSettled = balance.balance == 0;
+                  final color = isSettled
+                      ? cs.onSurfaceVariant
+                      : (isCredit ? savingsGreen : cs.error);
+                  final label = isSettled
+                      ? 'Settled'
+                      : (isCredit
+                          ? '₹${balance.balance.abs().toStringAsFixed(0)} credit'
+                          : '₹${balance.balance.abs().toStringAsFixed(0)} due');
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            isSettled
+                                ? Icons.check_circle_outline
+                                : (isCredit
+                                    ? Icons.trending_up
+                                    : Icons.error_outline),
+                            size: 16,
+                            color: color,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(label,
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: color)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: TextButton.icon(
+                              onPressed: () => PaymentHistorySheet.show(
+                                context,
+                                userId: widget.userId,
+                                isAdminView: true,
+                              ),
+                              icon: Icon(Icons.history,
+                                  size: 14, color: cs.secondary),
+                              label: const Text('History',
+                                  style: TextStyle(fontSize: 12)),
+                              style: TextButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: FilledButton.tonalIcon(
+                              onPressed: _recordPayment,
+                              icon: const Icon(Icons.add, size: 14),
+                              label: const Text('Record Payment',
+                                  style: TextStyle(fontSize: 12)),
+                              style: FilledButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 10),
+                                  visualDensity: VisualDensity.compact),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -464,6 +630,18 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
                             ),
                             const SizedBox(width: 4),
                             GestureDetector(
+                              onTap: () => BillDetailSheet.show(
+                                context,
+                                userId: widget.userId,
+                                isAdminView: true,
+                                month: b.month,
+                                year: b.year,
+                              ),
+                              child: Icon(Icons.receipt_long_outlined,
+                                  size: 16, color: cs.secondary),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
                               onTap: () async {
                                 try {
                                   await downloadBillPdf(
@@ -513,6 +691,90 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
+      }
+    }
+  }
+
+  Future<void> _recordPayment() async {
+    final amountCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (dialogCtx, setDialogState) => AlertDialog(
+          title: const Text('Record Payment'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: amountCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Amount (₹)'),
+                autofocus: true,
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: dialogCtx,
+                    initialDate: selectedDate,
+                    firstDate: DateTime(2024),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) setDialogState(() => selectedDate = picked);
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Date'),
+                  child: Text(DateFormat('d MMM yyyy').format(selectedDate)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteCtrl,
+                decoration: const InputDecoration(labelText: 'Note (optional)'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dialogCtx, false),
+                child: const Text('Cancel')),
+            FilledButton(
+                onPressed: () => Navigator.pop(dialogCtx, true),
+                child: const Text('Record')),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true) return;
+    final amount = double.tryParse(amountCtrl.text.trim());
+    if (amount == null || amount <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+      }
+      return;
+    }
+
+    try {
+      await recordPayment(
+        userId: widget.userId,
+        amount: amount,
+        date: selectedDate,
+        note: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+      );
+      ref.invalidate(adminUserBalanceProvider(widget.userId));
+      ref.invalidate(adminUserPaymentsProvider(widget.userId));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Payment recorded')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
