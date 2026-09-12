@@ -67,9 +67,45 @@ class _BillScreenState extends ConsumerState<BillScreen> {
                 final messAmt = (bill.deductionAmount - skipAmt)
                     .clamp(0.0, double.infinity);
 
+                final showsProrated = bill.isProrated;
+
                 return ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
+                    // Plan pill — always the real plan rate, never changes
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: cs.primary.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${bill.planName} · ₹${(bill.fullMonthlyRate ?? bill.planRate).toStringAsFixed(0)}/mo',
+                          style: TextStyle(
+                              color: cs.primary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                    if (showsProrated) ...[
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Text(
+                          bill.startDate != null &&
+                                  bill.startDate!.month == _month &&
+                                  bill.startDate!.year == _year
+                              ? 'Active from ${DateFormat('d MMMM').format(bill.startDate!)}'
+                              : 'Active until ${DateFormat('d MMMM').format(bill.stopDate!)}',
+                          style: tt.bodySmall
+                              ?.copyWith(color: cs.onSurfaceVariant),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+
                     // Animated amount
                     Center(
                       child: Column(
@@ -103,7 +139,9 @@ class _BillScreenState extends ConsumerState<BillScreen> {
                       child: Column(
                         children: [
                           _ReceiptRow(
-                            label: '${bill.planName} plan',
+                            label: showsProrated
+                                ? "This month's plan amount"
+                                : '${bill.planName} plan',
                             annotation: ' · ${bill.totalMeals} meals',
                             value:
                                 '₹${bill.planRate.toStringAsFixed(0)}',
@@ -158,6 +196,8 @@ class _BillScreenState extends ConsumerState<BillScreen> {
                           isAdminView: false,
                           month: _month,
                           year: _year,
+                          startDate: bill.startDate,
+                          stopDate: bill.stopDate,
                         ),
                         icon: Icon(Icons.receipt_long_outlined,
                             size: 16, color: cs.primary),

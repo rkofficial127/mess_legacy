@@ -613,6 +613,18 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
                           style: TextStyle(
                               fontSize: 12, color: cs.onSurfaceVariant),
                         ),
+                        if (b.isProrated) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Pro-rated from ₹${b.fullMonthlyRate!.toStringAsFixed(0)}/mo'
+                            '${b.startDate != null && b.startDate!.month == b.month && b.startDate!.year == b.year ? ' · since ${DateFormat('d MMM').format(b.startDate!)}' : ''}'
+                            '${b.stopDate != null && b.stopDate!.month == b.month && b.stopDate!.year == b.year ? ' · until ${DateFormat('d MMM').format(b.stopDate!)}' : ''}',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: cs.primary),
+                          ),
+                        ],
                         const SizedBox(height: 4),
                         Row(
                           children: [
@@ -636,6 +648,8 @@ class _UserBillHistorySheetState extends ConsumerState<_UserBillHistorySheet> {
                                 isAdminView: true,
                                 month: b.month,
                                 year: b.year,
+                                startDate: b.startDate,
+                                stopDate: b.stopDate,
                               ),
                               child: Icon(Icons.receipt_long_outlined,
                                   size: 16, color: cs.secondary),

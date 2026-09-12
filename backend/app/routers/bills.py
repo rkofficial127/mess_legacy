@@ -7,17 +7,37 @@ from sqlalchemy import extract, func, select
 from app.dependencies import CurrentAdmin, CurrentUser, DbSession
 from app.models.bill import MonthlyBill
 from app.models.extra_meal import ExtraMeal
+from app.models.meal_plan import MealPlan
 from app.models.meal_skip import MealSkip
 from app.models.mess_off import MessOffDay
+from app.models.subscription import UserSubscription
 from app.models.user import User
 from app.schemas.bill import BillGenerateRequest, BillGenerateUserRequest, BillResponse, BillSummary
-from app.services.billing_service import generate_bill_for_user, generate_bills
+from app.services.billing_service import _resolve_date_range, generate_bill_for_user, generate_bills
 from app.services.pdf_service import generate_bill_pdf
 
 router = APIRouter(prefix="/api/bills", tags=["bills"])
 
 
 async def _fetch_bill_ledger(db, user_id: uuid.UUID, month: int, year: int):
+    # Scope the ledger to the same active-date range used for the bill's
+    # own math, so e.g. a skip from before someone joined never shows up
+    # here even though the bill correctly excludes it from the total.
+    start_day, end_day = 1, None
+    sub_result = await db.execute(
+        select(UserSubscription).where(
+            UserSubscription.user_id == user_id,
+            UserSubscription.month == month,
+            UserSubscription.year == year,
+        )
+    )
+    sub = sub_result.scalar_one_or_none()
+    if sub is not None:
+        start_day, end_day = _resolve_date_range(sub, month, year)
+
+    def _in_range(d) -> bool:
+        return start_day <= d.day <= (end_day if end_day is not None else 31)
+
     skips_result = await db.execute(
         select(MealSkip)
         .where(
@@ -45,10 +65,30 @@ async def _fetch_bill_ledger(db, user_id: uuid.UUID, month: int, year: int):
         .order_by(ExtraMeal.date)
     )
     return (
-        list(skips_result.scalars().all()),
-        list(mess_off_result.scalars().all()),
-        list(extras_result.scalars().all()),
+        [s for s in skips_result.scalars().all() if _in_range(s.date)],
+        [m for m in mess_off_result.scalars().all() if _in_range(m.date)],
+        [e for e in extras_result.scalars().all() if _in_range(e.date)],
     )
+
+
+async def _fetch_plan_context(db, bill) -> dict:
+    """The plan's real seeded rate + join/leave dates for a bill's month,
+    so the UI can explain why plan_rate (pro-rated) differs from it."""
+    sub_result = await db.execute(
+        select(UserSubscription).where(
+            UserSubscription.user_id == bill.user_id,
+            UserSubscription.month == bill.month,
+            UserSubscription.year == bill.year,
+        )
+    )
+    sub = sub_result.scalar_one_or_none()
+    if sub is None:
+        return {}
+    context: dict = {"start_date": sub.start_date, "stop_date": sub.stop_date}
+    plan = await db.get(MealPlan, sub.meal_plan_id)
+    if plan is not None:
+        context["full_monthly_rate"] = plan.monthly_rate
+    return context
 
 
 async def _enrich_bills(db, bills: list) -> list[dict]:
@@ -59,6 +99,7 @@ async def _enrich_bills(db, bills: list) -> list[dict]:
     for b in bills:
         data = BillResponse.model_validate(b).model_dump()
         data["user_full_name"] = user_map.get(b.user_id, "Unknown")
+        data.update(await _fetch_plan_context(db, b))
         enriched.append(data)
     return enriched
 
@@ -110,7 +151,8 @@ async def my_bill(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bill not found for this month"
         )
-    return bill
+    enriched = await _enrich_bills(db, [bill])
+    return enriched[0]
 
 
 @router.get("")
@@ -226,7 +268,10 @@ async def export_my_pdf(
             status_code=status.HTTP_404_NOT_FOUND, detail="Bill not found for this month"
         )
     skips, mess_offs, extras = await _fetch_bill_ledger(db, bill.user_id, bill.month, bill.year)
-    pdf_bytes = generate_bill_pdf(bill, current_user.full_name, skips, mess_offs, extras)
+    plan_context = await _fetch_plan_context(db, bill)
+    pdf_bytes = generate_bill_pdf(
+        bill, current_user.full_name, skips, mess_offs, extras, **plan_context
+    )
     filename = f"bill_{current_user.full_name.replace(' ', '_')}_{bill.month:02d}_{bill.year}.pdf"
     return Response(
         content=pdf_bytes,
@@ -246,7 +291,8 @@ async def export_pdf(bill_id: uuid.UUID, db: DbSession, _: CurrentAdmin):
     user_name = user.full_name if user else "Unknown"
 
     skips, mess_offs, extras = await _fetch_bill_ledger(db, bill.user_id, bill.month, bill.year)
-    pdf_bytes = generate_bill_pdf(bill, user_name, skips, mess_offs, extras)
+    plan_context = await _fetch_plan_context(db, bill)
+    pdf_bytes = generate_bill_pdf(bill, user_name, skips, mess_offs, extras, **plan_context)
     filename = f"bill_{user_name.replace(' ', '_')}_{bill.month:02d}_{bill.year}.pdf"
     return Response(
         content=pdf_bytes,

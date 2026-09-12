@@ -14,6 +14,12 @@ class Bill {
   final double deductionAmount;
   final double finalAmount;
   final DateTime generatedAt;
+  // The plan's real seeded monthly rate — planRate above is the pro-rated
+  // amount used for this specific bill's math, which can differ from this
+  // when startDate/stopDate falls mid-month.
+  final double? fullMonthlyRate;
+  final DateTime? startDate;
+  final DateTime? stopDate;
 
   const Bill({
     required this.id,
@@ -31,7 +37,13 @@ class Bill {
     required this.deductionAmount,
     required this.finalAmount,
     required this.generatedAt,
+    this.fullMonthlyRate,
+    this.startDate,
+    this.stopDate,
   });
+
+  bool get isProrated =>
+      fullMonthlyRate != null && fullMonthlyRate != planRate;
 
   factory Bill.fromJson(Map<String, dynamic> json) => Bill(
         id: json['id'] as String,
@@ -50,5 +62,14 @@ class Bill {
         deductionAmount: double.parse(json['deduction_amount'].toString()),
         finalAmount: double.parse(json['final_amount'].toString()),
         generatedAt: DateTime.parse(json['generated_at'] as String),
+        fullMonthlyRate: json['full_monthly_rate'] != null
+            ? double.parse(json['full_monthly_rate'].toString())
+            : null,
+        startDate: json['start_date'] != null
+            ? DateTime.parse(json['start_date'] as String)
+            : null,
+        stopDate: json['stop_date'] != null
+            ? DateTime.parse(json['stop_date'] as String)
+            : null,
       );
 }

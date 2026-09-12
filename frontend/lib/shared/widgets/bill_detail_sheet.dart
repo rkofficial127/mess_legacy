@@ -24,6 +24,8 @@ class BillDetailSheet extends ConsumerWidget {
   final bool isAdminView;
   final int month;
   final int year;
+  final DateTime? startDate;
+  final DateTime? stopDate;
   final ScrollController? scrollController;
 
   const BillDetailSheet({
@@ -32,6 +34,8 @@ class BillDetailSheet extends ConsumerWidget {
     required this.isAdminView,
     required this.month,
     required this.year,
+    this.startDate,
+    this.stopDate,
     this.scrollController,
   });
 
@@ -41,6 +45,8 @@ class BillDetailSheet extends ConsumerWidget {
     required bool isAdminView,
     required int month,
     required int year,
+    DateTime? startDate,
+    DateTime? stopDate,
   }) {
     showModalBottomSheet(
       context: context,
@@ -55,10 +61,52 @@ class BillDetailSheet extends ConsumerWidget {
           isAdminView: isAdminView,
           month: month,
           year: year,
+          startDate: startDate,
+          stopDate: stopDate,
           scrollController: scrollCtrl,
         ),
       ),
     );
+  }
+
+  /// "Active from 10 Sept" style note when this bill's month has a
+  /// mid-month start/stop, so the itemized list explains its own scope.
+  String? _activeRangeNote() {
+    final startsThisMonth = startDate != null &&
+        startDate!.year == year &&
+        startDate!.month == month;
+    final stopsThisMonth = stopDate != null &&
+        stopDate!.year == year &&
+        stopDate!.month == month;
+    if (startsThisMonth && stopsThisMonth) {
+      return 'Active ${DateFormat('d MMM').format(startDate!)} – ${DateFormat('d MMM').format(stopDate!)}';
+    }
+    if (startsThisMonth) {
+      return 'Active from ${DateFormat('d MMM').format(startDate!)}';
+    }
+    if (stopsThisMonth) {
+      return 'Active until ${DateFormat('d MMM').format(stopDate!)}';
+    }
+    return null;
+  }
+
+  /// Only meals within the subscription's active range for THIS bill's
+  /// month should count — a skip from before someone joined (or after they
+  /// left) shouldn't show up here even if the record exists.
+  bool _inActiveRange(DateTime date) {
+    if (startDate != null &&
+        startDate!.year == year &&
+        startDate!.month == month &&
+        date.day < startDate!.day) {
+      return false;
+    }
+    if (stopDate != null &&
+        stopDate!.year == year &&
+        stopDate!.month == month &&
+        date.day > stopDate!.day) {
+      return false;
+    }
+    return true;
   }
 
   @override
@@ -101,6 +149,15 @@ class BillDetailSheet extends ConsumerWidget {
                     Text(DateFormat('MMMM yyyy').format(DateTime(year, month)),
                         style: TextStyle(
                             fontSize: 12, color: cs.onSurfaceVariant)),
+                    if (_activeRangeNote() != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(_activeRangeNote()!,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: cs.primary,
+                                fontWeight: FontWeight.w600)),
+                      ),
                   ],
                 ),
               ),
@@ -137,11 +194,15 @@ class BillDetailSheet extends ConsumerWidget {
     List extras,
   ) {
     final entries = <_LedgerEntry>[
-      for (final s in skips) _LedgerEntry(s.date, s.mealType, _EntryType.skipped),
+      for (final s in skips)
+        if (_inActiveRange(s.date))
+          _LedgerEntry(s.date, s.mealType, _EntryType.skipped),
       for (final m in messOffs)
-        _LedgerEntry(m.date, m.mealType, _EntryType.messOff, note: m.reason),
+        if (_inActiveRange(m.date))
+          _LedgerEntry(m.date, m.mealType, _EntryType.messOff, note: m.reason),
       for (final e in extras)
-        _LedgerEntry(e.date, e.mealType, _EntryType.extra, note: e.note),
+        if (_inActiveRange(e.date))
+          _LedgerEntry(e.date, e.mealType, _EntryType.extra, note: e.note),
     ]..sort((a, b) => a.date.compareTo(b.date));
 
     if (entries.isEmpty) {

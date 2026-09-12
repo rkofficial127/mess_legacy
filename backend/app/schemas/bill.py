@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -28,6 +28,12 @@ class BillResponse(BaseModel):
     deduction_amount: Decimal
     final_amount: Decimal
     generated_at: datetime
+    # The plan's actual seeded monthly rate (never changes) — plan_rate above
+    # is the pro-rated amount used for this specific bill's math. Shown
+    # alongside start/stop_date so the UI can explain *why* they differ.
+    full_monthly_rate: Decimal | None = None
+    start_date: date | None = None
+    stop_date: date | None = None
 
 
 class BillGenerateUserRequest(BaseModel):

@@ -1,4 +1,6 @@
 import io
+from datetime import date
+from decimal import Decimal
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -24,10 +26,14 @@ def generate_bill_pdf(
     skips: list[MealSkip] | None = None,
     mess_offs: list[MessOffDay] | None = None,
     extras: list[ExtraMeal] | None = None,
+    full_monthly_rate: Decimal | None = None,
+    start_date: date | None = None,
+    stop_date: date | None = None,
 ) -> bytes:
     skips = skips or []
     mess_offs = mess_offs or []
     extras = extras or []
+    is_prorated = full_monthly_rate is not None and full_monthly_rate != bill.plan_rate
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm)
@@ -41,8 +47,14 @@ def generate_bill_pdf(
         ["Name", user_name],
         ["Month / Year", f"{bill.month:02d} / {bill.year}"],
         ["Plan", bill.plan_name],
-        ["Plan Rate", f"Rs. {bill.plan_rate:,.2f}"],
+        ["Plan Rate", f"Rs. {(full_monthly_rate or bill.plan_rate):,.2f} /month"],
     ]
+    if is_prorated:
+        if start_date is not None and start_date.month == bill.month and start_date.year == bill.year:
+            info_data.append(["Active From", start_date.strftime("%d %b %Y")])
+        if stop_date is not None and stop_date.month == bill.month and stop_date.year == bill.year:
+            info_data.append(["Active Until", stop_date.strftime("%d %b %Y")])
+        info_data.append(["This Month's Amount", f"Rs. {bill.plan_rate:,.2f} (pro-rated)"])
     info_table = Table(info_data, colWidths=[50 * mm, 90 * mm])
     info_table.setStyle(
         TableStyle([
